@@ -753,7 +753,7 @@ async function fetchListings(attempt) {
     var controller = new AbortController();
     var timeout = setTimeout(function(){ controller.abort(); }, 8000);
 
-    var res = await fetch(SB_URL + "/rest/v1/listings?order=created_at.desc", {
+    var res = await fetch(SB_URL + "/rest/v1/listings?select=*&order=created_at.desc", {
       headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON },
       signal: controller.signal
     });
