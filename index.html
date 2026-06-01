@@ -14,17 +14,25 @@
       --radius: 8px; --radius-lg: 12px;
     }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); background: var(--surface); }
+
+    /* NAV */
     .nav { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; }
-    .logo { display:flex; align-items:center; gap:8px; font-size:20px; font-weight:600; color:var(--brand); cursor:pointer; text-decoration:none; }
+    .logo { display:flex; align-items:center; gap:8px; font-size:20px; font-weight:700; color:var(--brand); cursor:pointer; }
     .logo em { font-style:normal; color:var(--accent); }
     .nav-actions { display:flex; gap:8px; }
-    .btn { padding:8px 16px; border-radius:var(--radius); font-size:14px; cursor:pointer; font-family:inherit; font-weight:500; border:1px solid var(--border); background:transparent; color:var(--text); transition:background 0.15s; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+    .btn { padding:8px 16px; border-radius:var(--radius); font-size:14px; cursor:pointer; font-family:inherit; font-weight:500; border:1px solid var(--border); background:transparent; color:var(--text); transition:background 0.15s; display:inline-flex; align-items:center; gap:6px; }
     .btn:hover { background:var(--surface); }
     .btn-primary { background:var(--brand); color:#fff; border-color:var(--brand); }
     .btn-primary:hover { background:var(--brand-mid); }
     .btn-sm { padding:6px 12px; font-size:13px; }
+    .btn-outline { border-color:var(--brand); color:var(--brand); }
+    .btn-outline:hover { background:var(--brand-light); }
+
+    /* PAGES */
     .page { display:none; }
     .page.active { display:block; }
+
+    /* LISTINGS PAGE */
     .hero { background:var(--brand-light); padding:56px 24px 48px; text-align:center; }
     .hero h1 { font-size:36px; font-weight:700; color:var(--brand); margin-bottom:10px; }
     .hero p { font-size:17px; color:var(--muted); margin-bottom:28px; }
@@ -54,10 +62,48 @@
     .empty-state h3 { font-size:20px; font-weight:600; color:var(--text); margin-bottom:8px; }
     .empty-state p { margin-bottom:24px; }
     .loading-state { text-align:center; padding:80px; color:var(--muted); font-size:16px; }
+
+    /* DETAIL PAGE */
+    .detail-back { display:flex; align-items:center; gap:8px; padding:20px 24px 0; max-width:900px; margin:0 auto; }
+    .detail-hero { height:320px; background:var(--brand-light); display:flex; align-items:center; justify-content:center; color:var(--brand); font-size:80px; margin:20px 24px 0; border-radius:var(--radius-lg); max-width:900px; margin-left:auto; margin-right:auto; }
+    .detail-body { max-width:900px; margin:0 auto; padding:24px; display:grid; grid-template-columns:1fr 320px; gap:24px; align-items:start; }
+    .detail-main {}
+    .detail-title { font-size:26px; font-weight:700; margin-bottom:10px; line-height:1.3; }
+    .detail-location { font-size:15px; color:var(--muted); display:flex; align-items:center; gap:6px; margin-bottom:20px; }
+    .detail-stats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px; }
+    .stat-pill { display:flex; align-items:center; gap:8px; padding:10px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:14px; }
+    .stat-pill i { color:var(--brand); font-size:18px; }
+    .stat-pill strong { font-weight:600; }
+    .detail-section { margin-bottom:24px; }
+    .detail-section h3 { font-size:15px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+    .detail-description { font-size:15px; line-height:1.7; color:var(--text); }
+    .features-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .feature-item { display:flex; align-items:center; gap:8px; font-size:14px; }
+    .feature-item i { font-size:18px; }
+    .feature-item.yes i { color:var(--brand); }
+    .feature-item.no i { color:#d1d5db; }
+    .feature-item.no span { color:var(--muted); text-decoration:line-through; }
+
+    /* CONTACT CARD */
+    .contact-card { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; position:sticky; top:80px; }
+    .contact-price { font-size:30px; font-weight:700; color:var(--brand); margin-bottom:4px; }
+    .contact-price span { font-size:15px; font-weight:400; color:var(--muted); }
+    .contact-avail { font-size:13px; color:var(--muted); margin-bottom:20px; display:flex; align-items:center; gap:6px; }
+    .contact-avail i { color:var(--brand); }
+    .contact-divider { border:none; border-top:1px solid var(--border); margin:16px 0; }
+    .contact-label { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px; }
+    .contact-name { font-size:16px; font-weight:600; margin-bottom:16px; }
+    .contact-btn { width:100%; justify-content:center; margin-bottom:10px; padding:12px; font-size:15px; }
+    .contact-note { font-size:12px; color:var(--muted); text-align:center; margin-top:8px; }
+    .deposit-row { display:flex; justify-content:space-between; font-size:14px; padding:8px 0; border-bottom:1px solid var(--border); }
+    .deposit-row:last-child { border-bottom:none; }
+    .deposit-row span:last-child { font-weight:600; }
+
+    /* POST FORM */
     .form-page { max-width:700px; margin:0 auto; padding:40px 24px; }
     .form-page h2 { font-size:24px; font-weight:700; margin-bottom:6px; }
     .form-page .subtitle { font-size:15px; color:var(--muted); margin-bottom:36px; }
-    .form-section { margin-bottom:32px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; }
+    .form-section { margin-bottom:24px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; }
     .section-title { font-size:13px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:18px; padding-bottom:10px; border-bottom:1px solid var(--border); }
     .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
     .form-row.single { grid-template-columns:1fr; }
@@ -71,30 +117,36 @@
     .toggle-item { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--text); }
     .toggle-item input[type="checkbox"] { width:16px; height:16px; accent-color:var(--brand); cursor:pointer; }
     .form-actions { display:flex; gap:12px; justify-content:flex-end; padding-top:8px; }
+
+    /* TOAST */
     .toast { position:fixed; bottom:28px; right:28px; background:var(--brand); color:#fff; padding:14px 22px; border-radius:var(--radius); font-size:14px; font-weight:500; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:1000; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
     .toast.show { opacity:1; }
     .toast.error { background:#993C1D; }
-    @media(max-width:600px) {
+
+    @media(max-width:680px) {
+      .detail-body { grid-template-columns:1fr; }
+      .contact-card { position:static; }
+      .detail-hero { height:220px; font-size:56px; margin:16px 16px 0; }
       .form-row, .form-row.triple { grid-template-columns:1fr; }
       .hero h1 { font-size:26px; }
       .listings-grid { grid-template-columns:1fr; }
-      .nav-actions .btn-sm:first-child { display:none; }
     }
   </style>
 </head>
 <body>
 
 <nav class="nav">
-  <a class="logo" onclick="showPage('listings')">
-    <i class="ti ti-building" aria-hidden="true"></i>
+  <div class="logo" onclick="showPage('listings')">
+    <i class="ti ti-building"></i>
     casa<em>pt</em>
-  </a>
+  </div>
   <div class="nav-actions">
     <button class="btn btn-sm" onclick="showPage('listings')"><i class="ti ti-search"></i> Anúncios</button>
     <button class="btn btn-sm btn-primary" onclick="showPage('post')"><i class="ti ti-plus"></i> Anunciar imóvel</button>
   </div>
 </nav>
 
+<!-- LISTINGS PAGE -->
 <div id="page-listings" class="page active">
   <div class="hero">
     <h1>Encontre a sua casa em Portugal</h1>
@@ -112,7 +164,6 @@
       <button onclick="filterListings()">Pesquisar</button>
     </div>
   </div>
-
   <div class="filters">
     <button class="filter-chip active" onclick="setFilter(this,'')">Todos</button>
     <button class="filter-chip" onclick="setFilter(this,'Lisboa')">Lisboa</button>
@@ -122,11 +173,59 @@
     <button class="filter-chip" onclick="setFilter(this,'Coimbra')">Coimbra</button>
     <button class="filter-chip" onclick="setFilter(this,'Almada')">Almada</button>
   </div>
-
   <div class="stats-bar" id="stats-bar"><span>A carregar anúncios...</span></div>
   <div id="listings-container"><div class="loading-state"><i class="ti ti-loader-2" style="font-size:32px;display:block;margin-bottom:12px"></i>A carregar anúncios...</div></div>
 </div>
 
+<!-- DETAIL PAGE -->
+<div id="page-detail" class="page">
+  <div class="detail-back">
+    <button class="btn btn-sm btn-outline" onclick="showPage('listings')"><i class="ti ti-arrow-left"></i> Voltar aos anúncios</button>
+  </div>
+  <div class="detail-hero" id="detail-hero">
+    <i class="ti ti-home" id="detail-icon"></i>
+  </div>
+  <div class="detail-body">
+    <div class="detail-main">
+      <div class="detail-title" id="detail-title"></div>
+      <div class="detail-location" id="detail-location"><i class="ti ti-map-pin"></i><span></span></div>
+
+      <div class="detail-stats" id="detail-stats"></div>
+
+      <div class="detail-section" id="detail-desc-section">
+        <h3>Descrição</h3>
+        <div class="detail-description" id="detail-description"></div>
+      </div>
+
+      <div class="detail-section">
+        <h3>Características</h3>
+        <div class="features-grid" id="detail-features"></div>
+      </div>
+
+      <div class="detail-section" id="detail-avail-section">
+        <h3>Disponibilidade</h3>
+        <div id="detail-availability" style="font-size:15px;color:var(--text)"></div>
+      </div>
+    </div>
+
+    <div class="contact-card">
+      <div class="contact-price" id="contact-price"></div>
+      <div class="contact-avail" id="contact-avail"></div>
+      <hr class="contact-divider">
+      <div class="contact-label">Proprietário</div>
+      <div class="contact-name" id="contact-name"></div>
+      <button class="btn btn-primary contact-btn" id="contact-email-btn"><i class="ti ti-mail"></i> Enviar email</button>
+      <button class="btn btn-outline contact-btn" id="contact-phone-btn" style="display:none"><i class="ti ti-phone"></i> Ver telefone</button>
+      <div class="contact-note">Resposta típica em menos de 24 horas</div>
+      <hr class="contact-divider">
+      <div class="contact-label" style="margin-bottom:10px">Resumo de custos</div>
+      <div class="deposit-row"><span>Renda mensal</span><span id="cost-rent"></span></div>
+      <div class="deposit-row" id="cost-deposit-row" style="display:none"><span>Caução (estimada)</span><span id="cost-deposit"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- POST PAGE -->
 <div id="page-post" class="page">
   <div class="form-page">
     <h2>Publicar imóvel para arrendar</h2>
@@ -202,16 +301,17 @@
 <script>
   const SB_URL = "https://whhpnryzoujwboocsdkm.supabase.co";
   const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaHBucnl6b3Vqd2Jvb2NzZGttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0ODg2NDksImV4cCI6MjA4ODA2NDY0OX0.o_65NQG5NtKI9cMlR_NAE0Pn41kH6lrXNL95cbxq6GM";
-  const HEADERS = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY };
+  const H = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY };
 
   const PT = { apartment:"Apartamento", house:"Moradia", studio:"Estúdio", room:"Quarto", commercial:"Comercial" };
   const ICO = { apartment:"ti-building", house:"ti-home", studio:"ti-door", room:"ti-bed", commercial:"ti-building-store" };
 
   let all = [], cityFilter = "";
 
+  // ── FETCH ──────────────────────────────────────────────
   async function fetchListings() {
     try {
-      const r = await fetch(SB_URL + "/rest/v1/listings?order=created_at.desc", { headers: HEADERS });
+      const r = await fetch(SB_URL + "/rest/v1/listings?order=created_at.desc", { headers: H });
       all = await r.json();
       if (!Array.isArray(all)) all = [];
       renderListings(all);
@@ -220,6 +320,7 @@
     }
   }
 
+  // ── LISTINGS ───────────────────────────────────────────
   function renderListings(list) {
     document.getElementById("stats-bar").innerHTML = "<span><strong>" + list.length + "</strong> anúncio" + (list.length!==1?"s":"") + " encontrado" + (list.length!==1?"s":"") + "</span>";
     const c = document.getElementById("listings-container");
@@ -238,71 +339,176 @@
     const area = l.area ? l.area + "m²" : "";
     const extras = [l.furnished?"Mobilado":"", l.pets_allowed?"Animais OK":"", l.parking?"Garagem":""].filter(Boolean);
     const baseTags = [label, beds, area].filter(Boolean);
-    return '<div class="listing-card"><div class="card-img"><i class="ti ' + icon + '"></i></div><div class="card-body"><div class="card-price">€' + price + '<span> / mês</span></div><div class="card-title">' + esc(l.title) + '</div><div class="card-location"><i class="ti ti-map-pin"></i>' + esc(l.city||"") + (l.postal_code ? " · " + esc(l.postal_code) : "") + '</div><div class="card-tags">' + baseTags.map(t=>'<span class="tag">'+t+'</span>').join("") + extras.map(t=>'<span class="tag green">'+t+'</span>').join("") + '</div></div></div>';
+    return '<div class="listing-card" onclick="openDetail(\'' + l.id + '\')">' +
+      '<div class="card-img"><i class="ti ' + icon + '"></i></div>' +
+      '<div class="card-body">' +
+        '<div class="card-price">€' + price + '<span> / mês</span></div>' +
+        '<div class="card-title">' + esc(l.title) + '</div>' +
+        '<div class="card-location"><i class="ti ti-map-pin"></i>' + esc(l.city||"") + (l.postal_code?" · "+esc(l.postal_code):"") + '</div>' +
+        '<div class="card-tags">' + baseTags.map(t=>'<span class="tag">'+t+'</span>').join("") + extras.map(t=>'<span class="tag green">'+t+'</span>').join("") + '</div>' +
+      '</div></div>';
   }
 
-  function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  // ── DETAIL ─────────────────────────────────────────────
+  function openDetail(id) {
+    const l = all.find(function(x){ return x.id === id; });
+    if (!l) return;
 
+    const icon = ICO[l.property_type] || "ti-home";
+    const price = Number(l.price).toLocaleString("pt-PT");
+    const label = l.typology || PT[l.property_type] || "";
+
+    // hero icon
+    document.getElementById("detail-icon").className = "ti " + icon;
+
+    // title & location
+    document.getElementById("detail-title").textContent = l.title;
+    document.getElementById("detail-location").querySelector("span").textContent =
+      [l.address, l.city, l.postal_code].filter(Boolean).join(", ");
+
+    // stat pills
+    var stats = [];
+    if (label) stats.push('<div class="stat-pill"><i class="ti ti-home-2"></i><span>' + esc(label) + '</span></div>');
+    if (l.area) stats.push('<div class="stat-pill"><i class="ti ti-ruler-2"></i><strong>' + l.area + '</strong><span>m²</span></div>');
+    if (l.bedrooms !== null) stats.push('<div class="stat-pill"><i class="ti ti-bed"></i><strong>' + l.bedrooms + '</strong><span> quarto' + (l.bedrooms!==1?"s":"") + '</span></div>');
+    if (l.bathrooms) stats.push('<div class="stat-pill"><i class="ti ti-bath"></i><strong>' + l.bathrooms + '</strong><span> casa' + (l.bathrooms!==1?"s":"") + ' de banho</span></div>');
+    document.getElementById("detail-stats").innerHTML = stats.join("");
+
+    // description
+    var descSection = document.getElementById("detail-desc-section");
+    if (l.description) {
+      document.getElementById("detail-description").textContent = l.description;
+      descSection.style.display = "";
+    } else {
+      descSection.style.display = "none";
+    }
+
+    // features
+    function feat(condition, icon, label) {
+      var cls = condition ? "yes" : "no";
+      var ic = condition ? icon : "ti-x";
+      return '<div class="feature-item ' + cls + '"><i class="ti ' + ic + '"></i><span>' + label + '</span></div>';
+    }
+    document.getElementById("detail-features").innerHTML =
+      feat(l.furnished, "ti-sofa", "Mobilado") +
+      feat(l.pets_allowed, "ti-paw", "Animais permitidos") +
+      feat(l.parking, "ti-car", "Estacionamento") +
+      feat(l.elevator, "ti-elevator", "Elevador") +
+      feat(l.balcony, "ti-building-arch", "Varanda");
+
+    // availability
+    var availSection = document.getElementById("detail-avail-section");
+    if (l.available_from) {
+      var d = new Date(l.available_from);
+      var opts = { year:"numeric", month:"long", day:"numeric" };
+      document.getElementById("detail-availability").textContent = "Disponível a partir de " + d.toLocaleDateString("pt-PT", opts);
+      availSection.style.display = "";
+    } else {
+      availSection.style.display = "none";
+    }
+
+    // contact card
+    document.getElementById("contact-price").innerHTML = "€" + price + '<span> / mês</span>';
+    if (l.available_from) {
+      var d2 = new Date(l.available_from);
+      document.getElementById("contact-avail").innerHTML = '<i class="ti ti-calendar"></i> Disponível em ' + d2.toLocaleDateString("pt-PT", {month:"long", year:"numeric"});
+    } else {
+      document.getElementById("contact-avail").textContent = "";
+    }
+    document.getElementById("contact-name").textContent = l.landlord_name || "Proprietário";
+
+    var emailBtn = document.getElementById("contact-email-btn");
+    emailBtn.onclick = function(){ window.location.href = "mailto:" + (l.landlord_email||"") + "?subject=Interesse no imóvel: " + encodeURIComponent(l.title); };
+
+    var phoneBtn = document.getElementById("contact-phone-btn");
+    if (l.landlord_phone) {
+      phoneBtn.style.display = "";
+      var revealed = false;
+      phoneBtn.onclick = function() {
+        if (!revealed) { phoneBtn.innerHTML = '<i class="ti ti-phone"></i> ' + esc(l.landlord_phone); revealed = true; }
+        else { window.location.href = "tel:" + l.landlord_phone; }
+      };
+    } else {
+      phoneBtn.style.display = "none";
+    }
+
+    // costs
+    document.getElementById("cost-rent").textContent = "€" + price + "/mês";
+    if (l.deposit) {
+      document.getElementById("cost-deposit-row").style.display = "";
+      document.getElementById("cost-deposit").textContent = "€" + Number(l.deposit).toLocaleString("pt-PT");
+    } else {
+      document.getElementById("cost-deposit-row").style.display = "none";
+    }
+
+    showPage("detail");
+    window.scrollTo(0, 0);
+  }
+
+  // ── FILTERS ────────────────────────────────────────────
   function filterListings() {
-    const q = document.getElementById("search-input").value.toLowerCase();
-    const type = document.getElementById("type-filter").value;
-    renderListings(all.filter(function(l){
-      const mQ = !q || [l.city,l.title,l.address,l.typology].some(function(v){return v&&v.toLowerCase().includes(q);});
-      const mT = !type || l.property_type===type;
-      const mC = !cityFilter || (l.city&&l.city.toLowerCase().includes(cityFilter.toLowerCase()));
+    var q = document.getElementById("search-input").value.toLowerCase();
+    var type = document.getElementById("type-filter").value;
+    renderListings(all.filter(function(l) {
+      var mQ = !q || [l.city, l.title, l.address, l.typology].some(function(v){ return v && v.toLowerCase().includes(q); });
+      var mT = !type || l.property_type === type;
+      var mC = !cityFilter || (l.city && l.city.toLowerCase().includes(cityFilter.toLowerCase()));
       return mQ && mT && mC;
     }));
   }
 
   function setFilter(el, city) {
     cityFilter = city;
-    document.querySelectorAll(".filter-chip").forEach(function(c){c.classList.remove("active");});
+    document.querySelectorAll(".filter-chip").forEach(function(c){ c.classList.remove("active"); });
     el.classList.add("active");
     filterListings();
   }
 
+  // ── NAVIGATION ─────────────────────────────────────────
   function showPage(name) {
-    document.querySelectorAll(".page").forEach(function(p){p.classList.remove("active");});
-    document.getElementById("page-"+name).classList.add("active");
-    if(name==="listings") fetchListings();
-    window.scrollTo(0,0);
+    document.querySelectorAll(".page").forEach(function(p){ p.classList.remove("active"); });
+    document.getElementById("page-" + name).classList.add("active");
+    if (name === "listings") fetchListings();
+    window.scrollTo(0, 0);
   }
 
+  // ── TOAST ──────────────────────────────────────────────
   function showToast(msg, err) {
-    const t = document.getElementById("toast");
+    var t = document.getElementById("toast");
     t.textContent = msg;
-    t.className = "toast show" + (err?" error":"");
-    setTimeout(function(){t.classList.remove("show");}, 3500);
+    t.className = "toast show" + (err ? " error" : "");
+    setTimeout(function(){ t.classList.remove("show"); }, 3500);
   }
 
+  // ── SUBMIT ─────────────────────────────────────────────
   async function submitListing() {
-    const g = function(id){ return document.getElementById(id).value.trim(); };
-    const req = {"f-title":"Título","f-type":"Tipo de imóvel","f-address":"Morada","f-city":"Cidade","f-price":"Renda"};
-    for(const id in req) {
-      if(!g(id)){ showToast("Por favor preencha: " + req[id], true); document.getElementById(id).focus(); return; }
+    var g = function(id){ return document.getElementById(id).value.trim(); };
+    var req = {"f-title":"Título","f-type":"Tipo de imóvel","f-address":"Morada","f-city":"Cidade","f-price":"Renda"};
+    for (var id in req) {
+      if (!g(id)) { showToast("Por favor preencha: " + req[id], true); document.getElementById(id).focus(); return; }
     }
-    const body = {
-      title:g("f-title"), description:g("f-desc")||null, price:parseFloat(g("f-price")),
-      property_type:g("f-type"), typology:g("f-typology")||null,
-      bedrooms:parseInt(g("f-bedrooms")), bathrooms:parseInt(g("f-bathrooms")),
-      area:g("f-area")?parseFloat(g("f-area")):null,
-      address:g("f-address"), city:g("f-city"), postal_code:g("f-postal")||null,
-      available_from:document.getElementById("f-available").value||null,
-      furnished:document.getElementById("f-furnished").checked,
-      pets_allowed:document.getElementById("f-pets").checked,
-      parking:document.getElementById("f-parking").checked,
-      elevator:document.getElementById("f-elevator").checked,
-      balcony:document.getElementById("f-balcony").checked
+    var body = {
+      title: g("f-title"), description: g("f-desc") || null, price: parseFloat(g("f-price")),
+      property_type: g("f-type"), typology: g("f-typology") || null,
+      bedrooms: parseInt(g("f-bedrooms")), bathrooms: parseInt(g("f-bathrooms")),
+      area: g("f-area") ? parseFloat(g("f-area")) : null,
+      address: g("f-address"), city: g("f-city"), postal_code: g("f-postal") || null,
+      available_from: document.getElementById("f-available").value || null,
+      furnished: document.getElementById("f-furnished").checked,
+      pets_allowed: document.getElementById("f-pets").checked,
+      parking: document.getElementById("f-parking").checked,
+      elevator: document.getElementById("f-elevator").checked,
+      balcony: document.getElementById("f-balcony").checked
     };
     try {
-      const r = await fetch(SB_URL + "/rest/v1/listings", {
-        method:"POST",
-        headers:Object.assign({}, HEADERS, {"Content-Type":"application/json","Prefer":"return=representation"}),
-        body:JSON.stringify(body)
+      var r = await fetch(SB_URL + "/rest/v1/listings", {
+        method: "POST",
+        headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=representation"}),
+        body: JSON.stringify(body)
       });
-      if(r.ok){ showToast("✓ Anúncio publicado com sucesso!"); setTimeout(function(){showPage("listings");}, 1200); }
+      if (r.ok) { showToast("✓ Anúncio publicado com sucesso!"); setTimeout(function(){ showPage("listings"); }, 1200); }
       else { showToast("Erro ao publicar. Tente novamente.", true); }
-    } catch(e){ showToast("Erro de ligação. Tente novamente.", true); }
+    } catch(e) { showToast("Erro de ligação. Tente novamente.", true); }
   }
 
   fetchListings();
