@@ -531,11 +531,10 @@
 
 <script>
 // ── SUPABASE ───────────────────────────────────────────────────────────────
+const SB_URL = "https://whhpnryzoujwboocsdkm.supabase.co";
+const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaHBucnl6b3Vqd2Jvb2NzZGttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0ODg2NDksImV4cCI6MjA4ODA2NDY0OX0.o_65NQG5NtKI9cMlR_NAE0Pn41kH6lrXNL95cbxq6GM";
 const { createClient } = supabase;
-const sb = createClient(
-  "https://whhpnryzoujwboocsdkm.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaHBucnl6b3Vqd2Jvb2NzZGttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0ODg2NDksImV4cCI6MjA4ODA2NDY0OX0.o_65NQG5NtKI9cMlR_NAE0Pn41kH6lrXNL95cbxq6GM"
-);
+const sb = createClient(SB_URL, SB_ANON);
 
 // ── STATE ──────────────────────────────────────────────────────────────────
 let all = [], cityFilter = "", currentUser = null, currentProfile = null;
@@ -740,11 +739,15 @@ async function doLogout() {
 // ── FETCH LISTINGS ─────────────────────────────────────────────────────────
 async function fetchListings() {
   try {
-    var { data, error } = await sb.from("listings").select("*").order("created_at", { ascending: false });
-    if (error) throw error;
-    all = data || [];
+    var res = await fetch(SB_URL + "/rest/v1/listings?order=created_at.desc", {
+      headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON }
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    all = await res.json();
+    if (!Array.isArray(all)) all = [];
     renderListings(all);
   } catch(e) {
+    console.error("fetchListings error:", e);
     document.getElementById("listings-container").innerHTML =
       '<div class="empty-state"><i class="ti ti-wifi-off"></i><h3>Erro ao carregar</h3><p>Não foi possível ligar à base de dados.</p></div>';
   }
