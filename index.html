@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CasaPT – Arrendamentos em Portugal</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -15,12 +16,51 @@
     }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); background: var(--surface); }
 
+    /* NAV */
+    .nav { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:100; }
+    .logo { display:flex; align-items:center; gap:8px; font-size:20px; font-weight:700; color:var(--brand); cursor:pointer; }
+    .logo em { font-style:normal; color:var(--accent); }
+    .nav-actions { display:flex; gap:8px; align-items:center; }
+    .nav-user { display:flex; align-items:center; gap:10px; font-size:14px; }
+    .nav-avatar { width:32px; height:32px; border-radius:50%; background:var(--brand-light); color:var(--brand); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:13px; cursor:pointer; border:1px solid var(--border); }
+
+    /* BUTTONS */
+    .btn { padding:8px 16px; border-radius:var(--radius); font-size:14px; cursor:pointer; font-family:inherit; font-weight:500; border:1px solid var(--border); background:transparent; color:var(--text); transition:all 0.15s; display:inline-flex; align-items:center; gap:6px; }
+    .btn:hover { background:var(--surface); }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .btn-primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+    .btn-primary:hover { background:var(--brand-mid); }
+    .btn-sm { padding:6px 12px; font-size:13px; }
+    .btn-outline { border-color:var(--brand); color:var(--brand); }
+    .btn-outline:hover { background:var(--brand-light); }
+    .btn-danger { border-color:#dc2626; color:#dc2626; }
+    .btn-danger:hover { background:#fef2f2; }
+    .btn-full { width:100%; justify-content:center; }
+    .btn-ghost { border:none; color:var(--muted); }
+    .btn-ghost:hover { background:var(--surface); color:var(--text); }
+
+    /* PAGES */
+    .page { display:none; }
+    .page.active { display:block; }
+
+    /* HERO */
+    .hero { background:var(--brand-light); padding:56px 24px 48px; text-align:center; }
+    .hero h1 { font-size:36px; font-weight:700; color:var(--brand); margin-bottom:10px; }
+    .hero p { font-size:17px; color:var(--muted); margin-bottom:28px; }
+    .search-bar { display:flex; gap:8px; max-width:580px; margin:0 auto; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:8px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+    .search-bar input { flex:1; border:none; background:transparent; font-size:15px; color:var(--text); outline:none; padding:4px 8px; }
+    .search-bar button { background:var(--brand); color:#fff; border:none; border-radius:var(--radius); padding:8px 16px; cursor:pointer; font-size:14px; font-weight:500; }
+
+    /* REGION CHIPS */
+    .filters { display:flex; gap:8px; padding:16px 24px; overflow-x:auto; border-bottom:1px solid var(--border); background:var(--bg); }
+    .filter-chip { padding:7px 16px; border-radius:20px; font-size:13px; font-weight:500; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; white-space:nowrap; transition:all 0.15s; }
+    .filter-chip.active, .filter-chip:hover { background:var(--brand-light); color:var(--brand); border-color:var(--brand); }
 
     /* SIDEBAR LAYOUT */
-    .listings-layout { display:grid; grid-template-columns:260px 1fr; align-items:start; min-height:600px; }
+    .listings-layout { display:grid; grid-template-columns:260px 1fr; align-items:start; }
     .filter-sidebar { background:var(--bg); border-right:1px solid var(--border); padding:20px; position:sticky; top:65px; height:calc(100vh - 65px); overflow-y:auto; }
     .sidebar-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; padding-bottom:14px; border-bottom:1px solid var(--border); }
-    .sidebar-title { font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px; color:var(--text); }
+    .sidebar-title { font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px; }
     .sidebar-title i { color:var(--brand); }
     .btn-clear { font-size:13px; color:var(--brand); background:none; border:none; cursor:pointer; font-weight:500; padding:4px 8px; border-radius:var(--radius); }
     .btn-clear:hover { background:var(--brand-light); }
@@ -28,152 +68,246 @@
     .filter-block:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
     .filter-block-title { font-size:13px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:12px; }
     .filter-checkgroup { display:flex; flex-direction:column; gap:8px; }
-    .fcheck { display:flex; align-items:center; gap:8px; font-size:14px; cursor:pointer; color:var(--text); }
+    .fcheck { display:flex; align-items:center; gap:8px; font-size:14px; cursor:pointer; }
     .fcheck input[type="checkbox"] { width:15px; height:15px; accent-color:var(--brand); cursor:pointer; flex-shrink:0; }
     .price-inputs { display:flex; align-items:center; gap:8px; }
-    .price-inputs input { flex:1; min-width:0; padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius); font-size:14px; font-family:inherit; outline:none; }
-    .price-inputs input:focus { border-color:var(--brand); }
+    .price-inputs input, .single-input { padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius); font-size:14px; font-family:inherit; outline:none; width:100%; }
+    .price-inputs input { flex:1; min-width:0; }
+    .price-inputs input:focus, .single-input:focus { border-color:var(--brand); }
     .price-sep { color:var(--muted); font-size:14px; flex-shrink:0; }
-    .single-input { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius); font-size:14px; font-family:inherit; outline:none; }
-    .single-input:focus { border-color:var(--brand); }
     .listings-results { min-width:0; }
+
+    /* STATS BAR */
     .stats-bar { padding:12px 20px; background:var(--surface); border-bottom:1px solid var(--border); font-size:13px; color:var(--muted); }
-    .listings-grid { grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); padding:20px; }
-    @media(max-width:800px) {
-      .listings-layout { grid-template-columns:1fr; }
-      .filter-sidebar { position:static; height:auto; border-right:none; border-bottom:1px solid var(--border); }
-    }
-
-    /* NAV */
-    .nav { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; }
-    .logo { display:flex; align-items:center; gap:8px; font-size:20px; font-weight:700; color:var(--brand); cursor:pointer; }
-    .logo em { font-style:normal; color:var(--accent); }
-    .nav-actions { display:flex; gap:8px; }
-    .btn { padding:8px 16px; border-radius:var(--radius); font-size:14px; cursor:pointer; font-family:inherit; font-weight:500; border:1px solid var(--border); background:transparent; color:var(--text); transition:background 0.15s; display:inline-flex; align-items:center; gap:6px; }
-    .btn:hover { background:var(--surface); }
-    .btn-primary { background:var(--brand); color:#fff; border-color:var(--brand); }
-    .btn-primary:hover { background:var(--brand-mid); }
-    .btn-sm { padding:6px 12px; font-size:13px; }
-    .btn-outline { border-color:var(--brand); color:var(--brand); }
-    .btn-outline:hover { background:var(--brand-light); }
-
-    /* PAGES */
-    .page { display:none; }
-    .page.active { display:block; }
-
-    /* LISTINGS PAGE */
-    .hero { background:var(--brand-light); padding:56px 24px 48px; text-align:center; }
-    .hero h1 { font-size:36px; font-weight:700; color:var(--brand); margin-bottom:10px; }
-    .hero p { font-size:17px; color:var(--muted); margin-bottom:28px; }
-    .search-bar { display:flex; gap:8px; max-width:580px; margin:0 auto; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:8px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
-    .search-bar input { flex:1; border:none; background:transparent; font-size:15px; color:var(--text); outline:none; padding:4px 8px; }
-    .search-bar select { border:none; background:transparent; font-size:14px; color:var(--muted); outline:none; cursor:pointer; padding:4px; }
-    .search-bar button { background:var(--brand); color:#fff; border:none; border-radius:var(--radius); padding:8px 16px; cursor:pointer; font-size:14px; font-weight:500; }
-    .filters { display:flex; gap:8px; padding:16px 24px; overflow-x:auto; border-bottom:1px solid var(--border); background:var(--bg); }
-    .filter-chip { padding:7px 16px; border-radius:20px; font-size:13px; font-weight:500; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; white-space:nowrap; transition:all 0.15s; }
-    .filter-chip.active, .filter-chip:hover { background:var(--brand-light); color:var(--brand); border-color:var(--brand); }
-    .stats-bar { display:flex; gap:24px; padding:12px 24px; background:var(--surface); border-bottom:1px solid var(--border); font-size:13px; color:var(--muted); }
     .stats-bar strong { color:var(--text); }
-    .listings-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px; padding:24px; max-width:1200px; margin:0 auto; }
+
+    /* CARDS */
+    .listings-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:20px; padding:20px; }
     .listing-card { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; transition:box-shadow 0.2s, border-color 0.2s; cursor:pointer; }
     .listing-card:hover { box-shadow:0 4px 20px rgba(0,0,0,0.1); border-color:var(--brand); }
-    .card-img { height:180px; background:var(--brand-light); display:flex; align-items:center; justify-content:center; color:var(--brand); font-size:48px; }
-    .card-body { padding:18px; }
-    .card-price { font-size:22px; font-weight:700; color:var(--brand); margin-bottom:4px; }
+    .card-img { height:160px; background:var(--brand-light); display:flex; align-items:center; justify-content:center; color:var(--brand); font-size:44px; position:relative; }
+    .card-fav { position:absolute; top:10px; right:10px; background:white; border:1px solid var(--border); border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; transition:all 0.15s; }
+    .card-fav:hover { border-color:var(--accent); color:var(--accent); }
+    .card-fav.active { border-color:var(--accent); color:var(--accent); background:#fff5f2; }
+    .card-body { padding:16px; }
+    .card-price { font-size:21px; font-weight:700; color:var(--brand); margin-bottom:4px; }
     .card-price span { font-size:13px; font-weight:400; color:var(--muted); }
-    .card-title { font-size:15px; font-weight:600; margin-bottom:8px; line-height:1.4; }
-    .card-location { font-size:13px; color:var(--muted); display:flex; align-items:center; gap:4px; margin-bottom:14px; }
+    .card-title { font-size:14px; font-weight:600; margin-bottom:6px; line-height:1.4; }
+    .card-location { font-size:13px; color:var(--muted); display:flex; align-items:center; gap:4px; margin-bottom:12px; }
     .card-tags { display:flex; gap:6px; flex-wrap:wrap; }
-    .tag { padding:4px 10px; border-radius:20px; font-size:12px; background:var(--surface); color:var(--muted); border:1px solid var(--border); }
+    .tag { padding:3px 10px; border-radius:20px; font-size:12px; background:var(--surface); color:var(--muted); border:1px solid var(--border); }
     .tag.green { background:#E1F5EE; color:#0F6E56; border-color:#9FE1CB; }
-    .empty-state { text-align:center; padding:80px 24px; color:var(--muted); }
-    .empty-state i { font-size:56px; display:block; margin-bottom:16px; color:#d1d5db; }
-    .empty-state h3 { font-size:20px; font-weight:600; color:var(--text); margin-bottom:8px; }
-    .empty-state p { margin-bottom:24px; }
-    .loading-state { text-align:center; padding:80px; color:var(--muted); font-size:16px; }
 
-    /* DETAIL PAGE */
-    .detail-back { display:flex; align-items:center; gap:8px; padding:20px 24px 0; max-width:900px; margin:0 auto; }
-    .detail-hero { height:320px; background:var(--brand-light); display:flex; align-items:center; justify-content:center; color:var(--brand); font-size:80px; margin:20px 24px 0; border-radius:var(--radius-lg); max-width:900px; margin-left:auto; margin-right:auto; }
-    .detail-body { max-width:900px; margin:0 auto; padding:24px; display:grid; grid-template-columns:1fr 320px; gap:24px; align-items:start; }
-    .detail-main {}
+    /* DETAIL */
+    .detail-back { padding:20px 24px 0; max-width:960px; margin:0 auto; }
+    .detail-hero { height:300px; background:var(--brand-light); display:flex; align-items:center; justify-content:center; color:var(--brand); font-size:72px; margin:16px 24px 0; border-radius:var(--radius-lg); max-width:960px; margin-left:auto; margin-right:auto; }
+    .detail-body { max-width:960px; margin:0 auto; padding:24px; display:grid; grid-template-columns:1fr 320px; gap:24px; align-items:start; }
     .detail-title { font-size:26px; font-weight:700; margin-bottom:10px; line-height:1.3; }
     .detail-location { font-size:15px; color:var(--muted); display:flex; align-items:center; gap:6px; margin-bottom:20px; }
-    .detail-stats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px; }
-    .stat-pill { display:flex; align-items:center; gap:8px; padding:10px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:14px; }
-    .stat-pill i { color:var(--brand); font-size:18px; }
-    .stat-pill strong { font-weight:600; }
+    .detail-stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:24px; }
+    .stat-pill { display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:14px; }
+    .stat-pill i { color:var(--brand); font-size:17px; }
     .detail-section { margin-bottom:24px; }
-    .detail-section h3 { font-size:15px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
-    .detail-description { font-size:15px; line-height:1.7; color:var(--text); }
+    .detail-section h3 { font-size:13px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+    .detail-description { font-size:15px; line-height:1.7; }
     .features-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .feature-item { display:flex; align-items:center; gap:8px; font-size:14px; }
-    .feature-item i { font-size:18px; }
     .feature-item.yes i { color:var(--brand); }
     .feature-item.no i { color:#d1d5db; }
     .feature-item.no span { color:var(--muted); text-decoration:line-through; }
-
-    /* CONTACT CARD */
-    .contact-card { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; position:sticky; top:80px; }
-    .contact-price { font-size:30px; font-weight:700; color:var(--brand); margin-bottom:4px; }
-    .contact-price span { font-size:15px; font-weight:400; color:var(--muted); }
-    .contact-avail { font-size:13px; color:var(--muted); margin-bottom:20px; display:flex; align-items:center; gap:6px; }
-    .contact-avail i { color:var(--brand); }
+    .contact-card { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:22px; position:sticky; top:80px; }
+    .contact-price { font-size:28px; font-weight:700; color:var(--brand); margin-bottom:4px; }
+    .contact-price span { font-size:14px; font-weight:400; color:var(--muted); }
+    .contact-avail { font-size:13px; color:var(--muted); margin-bottom:18px; display:flex; align-items:center; gap:6px; }
     .contact-divider { border:none; border-top:1px solid var(--border); margin:16px 0; }
     .contact-label { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px; }
-    .contact-name { font-size:16px; font-weight:600; margin-bottom:16px; }
-    .contact-btn { width:100%; justify-content:center; margin-bottom:10px; padding:12px; font-size:15px; }
-    .contact-note { font-size:12px; color:var(--muted); text-align:center; margin-top:8px; }
-    .deposit-row { display:flex; justify-content:space-between; font-size:14px; padding:8px 0; border-bottom:1px solid var(--border); }
-    .deposit-row:last-child { border-bottom:none; }
-    .deposit-row span:last-child { font-weight:600; }
+    .contact-name { font-size:16px; font-weight:600; margin-bottom:14px; }
+    .contact-btn { width:100%; justify-content:center; margin-bottom:8px; padding:11px; font-size:14px; }
 
-    /* POST FORM */
+    /* AUTH MODAL */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:200; display:flex; align-items:center; justify-content:center; padding:16px; }
+    .modal-overlay.hidden { display:none; }
+    .modal { background:var(--bg); border-radius:var(--radius-lg); padding:32px; width:100%; max-width:420px; box-shadow:0 20px 60px rgba(0,0,0,0.2); }
+    .modal h2 { font-size:22px; font-weight:700; margin-bottom:6px; }
+    .modal .modal-sub { font-size:14px; color:var(--muted); margin-bottom:24px; }
+    .modal-tabs { display:flex; gap:0; margin-bottom:24px; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+    .modal-tab { flex:1; padding:9px; font-size:14px; font-weight:500; cursor:pointer; border:none; background:transparent; font-family:inherit; transition:all 0.15s; color:var(--muted); }
+    .modal-tab.active { background:var(--brand); color:#fff; }
+    .role-selector { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+    .role-card { border:2px solid var(--border); border-radius:var(--radius); padding:16px 12px; text-align:center; cursor:pointer; transition:all 0.15s; }
+    .role-card:hover { border-color:var(--brand); background:var(--brand-light); }
+    .role-card.selected { border-color:var(--brand); background:var(--brand-light); }
+    .role-card i { font-size:28px; color:var(--brand); display:block; margin-bottom:8px; }
+    .role-card strong { font-size:14px; display:block; margin-bottom:4px; }
+    .role-card span { font-size:12px; color:var(--muted); }
+    .form-group { margin-bottom:14px; }
+    .form-group label { display:block; font-size:13px; font-weight:500; color:var(--muted); margin-bottom:6px; }
+    .form-group input { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius); font-size:14px; font-family:inherit; outline:none; }
+    .form-group input:focus { border-color:var(--brand); }
+    .modal-footer { text-align:center; margin-top:16px; font-size:13px; color:var(--muted); }
+    .modal-footer a { color:var(--brand); cursor:pointer; font-weight:500; }
+    .auth-error { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:var(--radius); padding:10px 12px; font-size:13px; margin-bottom:14px; display:none; }
+    .auth-success { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; border-radius:var(--radius); padding:10px 12px; font-size:13px; margin-bottom:14px; display:none; }
+
+    /* DASHBOARD */
+    .dashboard-layout { display:grid; grid-template-columns:220px 1fr; min-height:calc(100vh - 65px); }
+    .dash-sidebar { background:var(--bg); border-right:1px solid var(--border); padding:24px 0; }
+    .dash-nav-item { display:flex; align-items:center; gap:10px; padding:11px 20px; font-size:14px; font-weight:500; cursor:pointer; color:var(--muted); transition:all 0.15s; border-left:3px solid transparent; }
+    .dash-nav-item:hover { background:var(--surface); color:var(--text); }
+    .dash-nav-item.active { color:var(--brand); background:var(--brand-light); border-left-color:var(--brand); }
+    .dash-nav-item i { font-size:18px; }
+    .dash-content { padding:28px; }
+    .dash-header { margin-bottom:24px; }
+    .dash-header h2 { font-size:22px; font-weight:700; margin-bottom:4px; }
+    .dash-header p { font-size:14px; color:var(--muted); }
+    .dash-section { display:none; }
+    .dash-section.active { display:block; }
+
+    /* STATS CARDS */
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:16px; margin-bottom:28px; }
+    .stat-card { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; }
+    .stat-card-label { font-size:13px; color:var(--muted); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+    .stat-card-label i { color:var(--brand); }
+    .stat-card-value { font-size:30px; font-weight:700; color:var(--text); }
+
+    /* LISTINGS TABLE */
+    .listings-table { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+    .table-header { display:grid; grid-template-columns:1fr 120px 100px 120px; gap:12px; padding:12px 16px; background:var(--surface); border-bottom:1px solid var(--border); font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
+    .table-row { display:grid; grid-template-columns:1fr 120px 100px 120px; gap:12px; padding:14px 16px; border-bottom:1px solid var(--border); align-items:center; font-size:14px; }
+    .table-row:last-child { border-bottom:none; }
+    .table-row:hover { background:var(--surface); }
+    .table-title { font-weight:500; }
+    .table-city { color:var(--muted); font-size:13px; }
+    .status-badge { padding:3px 10px; border-radius:20px; font-size:12px; font-weight:500; display:inline-block; }
+    .status-active { background:#E1F5EE; color:#0F6E56; }
+    .status-paused { background:#fef3c7; color:#d97706; }
+    .table-actions { display:flex; gap:6px; }
+
+    /* MESSAGES */
+    .message-list { display:flex; flex-direction:column; gap:12px; }
+    .message-card { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; }
+    .message-card.unread { border-left:3px solid var(--brand); }
+    .message-meta { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .message-from { font-size:14px; font-weight:600; }
+    .message-listing { font-size:13px; color:var(--muted); }
+    .message-date { font-size:12px; color:var(--muted); }
+    .message-body { font-size:14px; line-height:1.6; color:var(--text); }
+
+    /* FAVOURITES */
+    .fav-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+
+    /* FORM PAGE */
     .form-page { max-width:700px; margin:0 auto; padding:40px 24px; }
     .form-page h2 { font-size:24px; font-weight:700; margin-bottom:6px; }
-    .form-page .subtitle { font-size:15px; color:var(--muted); margin-bottom:36px; }
-    .form-section { margin-bottom:24px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; }
-    .section-title { font-size:13px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:18px; padding-bottom:10px; border-bottom:1px solid var(--border); }
-    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+    .form-page .subtitle { font-size:15px; color:var(--muted); margin-bottom:32px; }
+    .form-section { margin-bottom:20px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:22px; }
+    .section-title { font-size:13px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
     .form-row.single { grid-template-columns:1fr; }
     .form-row.triple { grid-template-columns:1fr 1fr 1fr; }
-    .form-group { display:flex; flex-direction:column; gap:6px; }
-    .form-group label { font-size:13px; font-weight:500; color:var(--muted); }
-    .form-group input, .form-group select, .form-group textarea { padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius); font-size:14px; font-family:inherit; color:var(--text); background:var(--bg); outline:none; transition:border-color 0.15s; }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--brand); }
-    .form-group textarea { resize:vertical; min-height:90px; }
-    .toggle-row { display:flex; gap:20px; flex-wrap:wrap; margin-top:4px; }
-    .toggle-item { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--text); }
+    .fg { display:flex; flex-direction:column; gap:6px; }
+    .fg label { font-size:13px; font-weight:500; color:var(--muted); }
+    .fg input, .fg select, .fg textarea { padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius); font-size:14px; font-family:inherit; color:var(--text); background:var(--bg); outline:none; transition:border-color 0.15s; }
+    .fg input:focus, .fg select:focus, .fg textarea:focus { border-color:var(--brand); }
+    .fg textarea { resize:vertical; min-height:90px; }
+    .toggle-row { display:flex; gap:20px; flex-wrap:wrap; }
+    .toggle-item { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; }
     .toggle-item input[type="checkbox"] { width:16px; height:16px; accent-color:var(--brand); cursor:pointer; }
     .form-actions { display:flex; gap:12px; justify-content:flex-end; padding-top:8px; }
 
-    /* TOAST */
-    .toast { position:fixed; bottom:28px; right:28px; background:var(--brand); color:#fff; padding:14px 22px; border-radius:var(--radius); font-size:14px; font-weight:500; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:1000; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
-    .toast.show { opacity:1; }
-    .toast.error { background:#993C1D; }
+    /* EMPTY + LOADING */
+    .empty-state { text-align:center; padding:60px 24px; color:var(--muted); }
+    .empty-state i { font-size:48px; display:block; margin-bottom:14px; color:#d1d5db; }
+    .empty-state h3 { font-size:18px; font-weight:600; color:var(--text); margin-bottom:8px; }
+    .empty-state p { margin-bottom:20px; }
+    .loading-state { text-align:center; padding:60px; color:var(--muted); }
 
-    @media(max-width:680px) {
+    /* TOAST */
+    .toast { position:fixed; bottom:28px; right:28px; background:var(--brand); color:#fff; padding:14px 20px; border-radius:var(--radius); font-size:14px; font-weight:500; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:300; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
+    .toast.show { opacity:1; }
+    .toast.error { background:#991b1b; }
+
+    /* CONTACT FORM IN DETAIL */
+    .contact-form textarea { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius); font-size:14px; font-family:inherit; resize:vertical; min-height:80px; outline:none; margin-bottom:10px; }
+    .contact-form textarea:focus { border-color:var(--brand); }
+
+    @media(max-width:900px) {
       .detail-body { grid-template-columns:1fr; }
       .contact-card { position:static; }
-      .detail-hero { height:220px; font-size:56px; margin:16px 16px 0; }
+      .dashboard-layout { grid-template-columns:1fr; }
+      .dash-sidebar { border-right:none; border-bottom:1px solid var(--border); padding:12px 0; display:flex; overflow-x:auto; }
+      .dash-nav-item { border-left:none; border-bottom:3px solid transparent; white-space:nowrap; }
+      .dash-nav-item.active { border-left:none; border-bottom-color:var(--brand); }
+      .table-header, .table-row { grid-template-columns:1fr 80px 80px; }
+      .table-header > *:nth-child(2), .table-row > *:nth-child(2) { display:none; }
+    }
+    @media(max-width:700px) {
+      .listings-layout { grid-template-columns:1fr; }
+      .filter-sidebar { position:static; height:auto; border-right:none; border-bottom:1px solid var(--border); }
       .form-row, .form-row.triple { grid-template-columns:1fr; }
       .hero h1 { font-size:26px; }
       .listings-grid { grid-template-columns:1fr; }
+      .stats-grid { grid-template-columns:1fr 1fr; }
     }
   </style>
 </head>
 <body>
 
+<!-- NAV -->
 <nav class="nav">
   <div class="logo" onclick="showPage('listings')">
-    <i class="ti ti-building"></i>
-    casa<em>pt</em>
+    <i class="ti ti-building"></i>casa<em>pt</em>
   </div>
-  <div class="nav-actions">
+  <div class="nav-actions" id="nav-actions">
     <button class="btn btn-sm" onclick="showPage('listings')"><i class="ti ti-search"></i> Anúncios</button>
-    <button class="btn btn-sm btn-primary" onclick="showPage('post')"><i class="ti ti-plus"></i> Anunciar imóvel</button>
+    <button class="btn btn-sm btn-outline" onclick="openAuth('login')">Entrar</button>
+    <button class="btn btn-sm btn-primary" onclick="openAuth('register')">Registar</button>
   </div>
 </nav>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay hidden" id="auth-modal">
+  <div class="modal">
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tab-login" onclick="switchTab('login')">Entrar</button>
+      <button class="modal-tab" id="tab-register" onclick="switchTab('register')">Criar conta</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="form-login">
+      <div class="auth-error" id="login-error"></div>
+      <div class="auth-success" id="login-success"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="email@exemplo.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="A sua password"></div>
+      <button class="btn btn-primary btn-full" onclick="doLogin()"><i class="ti ti-login"></i> Entrar</button>
+      <div class="modal-footer">Não tem conta? <a onclick="switchTab('register')">Registar agora</a></div>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="form-register" style="display:none">
+      <div class="auth-error" id="reg-error"></div>
+      <div class="auth-success" id="reg-success"></div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:16px">Sou um...</p>
+      <div class="role-selector">
+        <div class="role-card selected" id="role-landlord" onclick="selectRole('landlord')">
+          <i class="ti ti-home-edit"></i>
+          <strong>Proprietário</strong>
+          <span>Quero anunciar imóveis</span>
+        </div>
+        <div class="role-card" id="role-tenant" onclick="selectRole('tenant')">
+          <i class="ti ti-search"></i>
+          <strong>Arrendatário</strong>
+          <span>Quero arrendar</span>
+        </div>
+      </div>
+      <div class="form-group"><label>Nome completo</label><input type="text" id="reg-name" placeholder="O seu nome"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="email@exemplo.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="Mínimo 6 caracteres"></div>
+      <button class="btn btn-primary btn-full" onclick="doRegister()"><i class="ti ti-user-plus"></i> Criar conta</button>
+      <div class="modal-footer">Já tem conta? <a onclick="switchTab('login')">Entrar</a></div>
+    </div>
+  </div>
+</div>
 
 <!-- LISTINGS PAGE -->
 <div id="page-listings" class="page active">
@@ -196,13 +330,11 @@
     <button class="filter-chip" onclick="setFilter(this,'setubal')">Setúbal</button>
   </div>
   <div class="listings-layout">
-    <!-- SIDEBAR -->
-    <aside class="filter-sidebar" id="filter-sidebar">
+    <aside class="filter-sidebar">
       <div class="sidebar-header">
         <span class="sidebar-title"><i class="ti ti-adjustments-horizontal"></i> Filtros</span>
         <button class="btn-clear" onclick="clearFilters()">Limpar</button>
       </div>
-
       <div class="filter-block">
         <div class="filter-block-title">Tipo de imóvel</div>
         <div class="filter-checkgroup">
@@ -210,10 +342,8 @@
           <label class="fcheck"><input type="checkbox" value="house" onchange="filterListings()"> Moradia</label>
           <label class="fcheck"><input type="checkbox" value="studio" onchange="filterListings()"> Estúdio</label>
           <label class="fcheck"><input type="checkbox" value="room" onchange="filterListings()"> Quarto</label>
-          <label class="fcheck"><input type="checkbox" value="commercial" onchange="filterListings()"> Comercial</label>
         </div>
       </div>
-
       <div class="filter-block">
         <div class="filter-block-title">Quartos</div>
         <div class="filter-checkgroup">
@@ -224,7 +354,6 @@
           <label class="fcheck"><input type="checkbox" value="4" name="beds" onchange="filterListings()"> T4+</label>
         </div>
       </div>
-
       <div class="filter-block">
         <div class="filter-block-title">Preço mensal (€)</div>
         <div class="price-inputs">
@@ -233,12 +362,10 @@
           <input type="number" id="price-max" placeholder="Máx" oninput="filterListings()">
         </div>
       </div>
-
       <div class="filter-block">
         <div class="filter-block-title">Área mínima (m²)</div>
         <input type="number" id="area-min" class="single-input" placeholder="Ex: 50" oninput="filterListings()">
       </div>
-
       <div class="filter-block">
         <div class="filter-block-title">Características</div>
         <div class="filter-checkgroup">
@@ -250,60 +377,48 @@
         </div>
       </div>
     </aside>
-
-    <!-- RESULTS -->
     <div class="listings-results">
       <div class="stats-bar" id="stats-bar"><span>A carregar anúncios...</span></div>
-      <div id="listings-container"><div class="loading-state"><i class="ti ti-loader-2" style="font-size:32px;display:block;margin-bottom:12px"></i>A carregar anúncios...</div></div>
+      <div id="listings-container"><div class="loading-state"><i class="ti ti-loader-2" style="font-size:32px;display:block;margin-bottom:12px"></i>A carregar...</div></div>
     </div>
   </div>
 </div>
 
 <!-- DETAIL PAGE -->
 <div id="page-detail" class="page">
-  <div class="detail-back">
-    <button class="btn btn-sm btn-outline" onclick="showPage('listings')"><i class="ti ti-arrow-left"></i> Voltar aos anúncios</button>
-  </div>
-  <div class="detail-hero" id="detail-hero">
-    <i class="ti ti-home" id="detail-icon"></i>
-  </div>
+  <div class="detail-back"><button class="btn btn-sm btn-outline" onclick="showPage('listings')"><i class="ti ti-arrow-left"></i> Voltar</button></div>
+  <div class="detail-hero"><i class="ti ti-home" id="detail-icon"></i></div>
   <div class="detail-body">
     <div class="detail-main">
       <div class="detail-title" id="detail-title"></div>
-      <div class="detail-location" id="detail-location"><i class="ti ti-map-pin"></i><span></span></div>
-
+      <div class="detail-location"><i class="ti ti-map-pin"></i><span id="detail-loc-text"></span></div>
       <div class="detail-stats" id="detail-stats"></div>
-
       <div class="detail-section" id="detail-desc-section">
         <h3>Descrição</h3>
         <div class="detail-description" id="detail-description"></div>
       </div>
-
       <div class="detail-section">
         <h3>Características</h3>
         <div class="features-grid" id="detail-features"></div>
       </div>
-
-      <div class="detail-section" id="detail-avail-section">
-        <h3>Disponibilidade</h3>
-        <div id="detail-availability" style="font-size:15px;color:var(--text)"></div>
-      </div>
     </div>
-
     <div class="contact-card">
       <div class="contact-price" id="contact-price"></div>
       <div class="contact-avail" id="contact-avail"></div>
       <hr class="contact-divider">
       <div class="contact-label">Proprietário</div>
       <div class="contact-name" id="contact-name"></div>
-      <button class="btn btn-primary contact-btn" id="contact-email-btn"><i class="ti ti-mail"></i> Enviar email</button>
-      <button class="btn btn-outline contact-btn" id="contact-phone-btn" style="display:none"><i class="ti ti-phone"></i> Ver telefone</button>
-      <div class="contact-note">Resposta típica em menos de 24 horas</div>
-      <hr class="contact-divider">
-      <div class="contact-label" style="margin-bottom:10px">Resumo de custos</div>
-      <div class="deposit-row"><span>Renda mensal</span><span id="cost-rent"></span></div>
-      <div class="deposit-row" id="cost-deposit-row" style="display:none"><span>Caução (estimada)</span><span id="cost-deposit"></span></div>
+      <div id="contact-actions"></div>
+      <div class="contact-note" id="contact-note" style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px"></div>
     </div>
+  </div>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div id="page-dashboard" class="page">
+  <div class="dashboard-layout">
+    <aside class="dash-sidebar" id="dash-sidebar"></aside>
+    <div class="dash-content" id="dash-content"></div>
   </div>
 </div>
 
@@ -311,40 +426,32 @@
 <div id="page-post" class="page">
   <div class="form-page">
     <h2>Publicar imóvel para arrendar</h2>
-    <p class="subtitle">Preencha os detalhes do seu imóvel. O anúncio fica visível imediatamente.</p>
-
+    <p class="subtitle">Preencha os detalhes. O anúncio fica visível imediatamente.</p>
     <div class="form-section">
       <div class="section-title">Informação do imóvel</div>
-      <div class="form-row single"><div class="form-group"><label>Título do anúncio *</label><input type="text" id="f-title" placeholder="Ex: T2 Renovado com Terraço – Príncipe Real"></div></div>
+      <div class="form-row single"><div class="fg"><label>Título do anúncio *</label><input type="text" id="f-title" placeholder="Ex: T2 Renovado com Terraço – Príncipe Real"></div></div>
       <div class="form-row">
-        <div class="form-group"><label>Tipo de imóvel *</label>
+        <div class="fg"><label>Tipo de imóvel *</label>
           <select id="f-type">
             <option value="">Selecionar...</option>
             <option value="apartment">Apartamento</option>
             <option value="house">Moradia</option>
             <option value="studio">Estúdio</option>
             <option value="room">Quarto</option>
-            <option value="commercial">Comercial</option>
           </select>
         </div>
-        <div class="form-group"><label>Tipologia</label><input type="text" id="f-typology" placeholder="Ex: T2, T3, Quarto..."></div>
+        <div class="fg"><label>Tipologia</label><input type="text" id="f-typology" placeholder="Ex: T2, T3..."></div>
       </div>
       <div class="form-row triple">
-        <div class="form-group"><label>Quartos</label>
-          <select id="f-bedrooms">
-            <option value="0">T0 / Estúdio</option>
-            <option value="1">1 – T1</option>
-            <option value="2">2 – T2</option>
-            <option value="3">3 – T3</option>
-            <option value="4">4+ – T4+</option>
-          </select>
+        <div class="fg"><label>Quartos</label>
+          <select id="f-bedrooms"><option value="0">T0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select>
         </div>
-        <div class="form-group"><label>Casas de banho</label>
+        <div class="fg"><label>Casas de banho</label>
           <select id="f-bathrooms"><option value="1">1</option><option value="2">2</option><option value="3">3+</option></select>
         </div>
-        <div class="form-group"><label>Área (m²)</label><input type="number" id="f-area" placeholder="Ex: 85"></div>
+        <div class="fg"><label>Área (m²)</label><input type="number" id="f-area" placeholder="Ex: 85"></div>
       </div>
-      <div class="form-row single"><div class="form-group"><label>Descrição</label><textarea id="f-desc" placeholder="Descreva o imóvel: características, transportes próximos, condições..."></textarea></div></div>
+      <div class="form-row single"><div class="fg"><label>Descrição</label><textarea id="f-desc" placeholder="Descreva o imóvel..."></textarea></div></div>
       <div class="toggle-row">
         <label class="toggle-item"><input type="checkbox" id="f-furnished"> Mobilado</label>
         <label class="toggle-item"><input type="checkbox" id="f-pets"> Animais permitidos</label>
@@ -353,24 +460,21 @@
         <label class="toggle-item"><input type="checkbox" id="f-balcony"> Varanda</label>
       </div>
     </div>
-
     <div class="form-section">
       <div class="section-title">Localização</div>
-      <div class="form-row single"><div class="form-group"><label>Morada *</label><input type="text" id="f-address" placeholder="Rua, número, andar"></div></div>
+      <div class="form-row single"><div class="fg"><label>Morada *</label><input type="text" id="f-address" placeholder="Rua, número, andar"></div></div>
       <div class="form-row">
-        <div class="form-group"><label>Cidade *</label><input type="text" id="f-city" placeholder="Ex: Lisboa"></div>
-        <div class="form-group"><label>Código postal</label><input type="text" id="f-postal" placeholder="Ex: 1200-110"></div>
+        <div class="fg"><label>Cidade *</label><input type="text" id="f-city" placeholder="Ex: Lisboa"></div>
+        <div class="fg"><label>Código postal</label><input type="text" id="f-postal" placeholder="Ex: 1200-110"></div>
       </div>
     </div>
-
     <div class="form-section">
       <div class="section-title">Preço e disponibilidade</div>
       <div class="form-row">
-        <div class="form-group"><label>Renda mensal (€) *</label><input type="number" id="f-price" placeholder="Ex: 950"></div>
-        <div class="form-group"><label>Disponível a partir de</label><input type="date" id="f-available"></div>
+        <div class="fg"><label>Renda mensal (€) *</label><input type="number" id="f-price" placeholder="Ex: 950"></div>
+        <div class="fg"><label>Disponível a partir de</label><input type="date" id="f-available"></div>
       </div>
     </div>
-
     <div class="form-actions">
       <button class="btn" onclick="showPage('listings')">Cancelar</button>
       <button class="btn btn-primary" onclick="submitListing()"><i class="ti ti-send"></i> Publicar anúncio</button>
@@ -381,299 +485,526 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  const SB_URL = "https://whhpnryzoujwboocsdkm.supabase.co";
-  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaHBucnl6b3Vqd2Jvb2NzZGttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0ODg2NDksImV4cCI6MjA4ODA2NDY0OX0.o_65NQG5NtKI9cMlR_NAE0Pn41kH6lrXNL95cbxq6GM";
-  const H = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY };
+// ── SUPABASE ───────────────────────────────────────────────────────────────
+const { createClient } = supabase;
+const sb = createClient(
+  "https://whhpnryzoujwboocsdkm.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaHBucnl6b3Vqd2Jvb2NzZGttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0ODg2NDksImV4cCI6MjA4ODA2NDY0OX0.o_65NQG5NtKI9cMlR_NAE0Pn41kH6lrXNL95cbxq6GM"
+);
 
-  const PT = { apartment:"Apartamento", house:"Moradia", studio:"Estúdio", room:"Quarto", commercial:"Comercial" };
-  const ICO = { apartment:"ti-building", house:"ti-home", studio:"ti-door", room:"ti-bed", commercial:"ti-building-store" };
+// ── STATE ──────────────────────────────────────────────────────────────────
+let all = [], cityFilter = "", currentUser = null, currentProfile = null;
+let currentListing = null, favouriteIds = new Set();
+let selectedRole = "landlord";
 
-  let all = [], cityFilter = "";
+const PT = { apartment:"Apartamento", house:"Moradia", studio:"Estúdio", room:"Quarto", commercial:"Comercial" };
+const ICO = { apartment:"ti-building", house:"ti-home", studio:"ti-door", room:"ti-bed", commercial:"ti-building-store" };
+const REGIONS = {
+  'lisboa':  ['lisboa','cascais','sintra','oeiras','amadora','loures','odivelas','mafra','almada','barreiro','seixal','montijo'],
+  'porto':   ['porto','vila nova de gaia','matosinhos','maia','gondomar','valongo','paredes','penafiel','espinho'],
+  'braga':   ['braga','guimarães','barcelos','famalicão','esposende'],
+  'algarve': ['faro','albufeira','portimão','lagos','loulé','silves','tavira','olhão'],
+  'coimbra': ['coimbra','figueira da foz','cantanhede'],
+  'setubal': ['setúbal','almada','barreiro','seixal','montijo','alcochete','sesimbra','palmela']
+};
+const PT_TYPE_MAP = {
+  'apartamento':'apartment','moradia':'house','vivenda':'house',
+  'estúdio':'studio','estudio':'studio','quarto':'room','comercial':'commercial'
+};
 
-  const REGIONS = {
-    'lisboa':  ['lisboa','cascais','sintra','oeiras','amadora','loures','odivelas','mafra','vila franca de xira','almada','barreiro','seixal','montijo'],
-    'porto':   ['porto','vila nova de gaia','matosinhos','maia','gondomar','valongo','paredes','penafiel','espinho','póvoa de varzim','vila do conde'],
-    'braga':   ['braga','guimarães','barcelos','famalicão','esposende','vizela'],
-    'algarve': ['faro','albufeira','portimão','lagos','loulé','silves','tavira','olhão','lagoa','aljezur'],
-    'coimbra': ['coimbra','figueira da foz','cantanhede','montemor-o-velho','penacova'],
-    'setubal': ['setúbal','almada','barreiro','seixal','montijo','alcochete','moita','sesimbra','palmela']
+// ── AUTH STATE ─────────────────────────────────────────────────────────────
+sb.auth.onAuthStateChange(async function(event, session) {
+  if (session && session.user) {
+    currentUser = session.user;
+    var { data: prof } = await sb.from("profiles").select("*").eq("id", currentUser.id).single();
+    currentProfile = prof;
+    updateNav();
+    if (currentProfile && currentProfile.role === "tenant") await loadFavourites();
+  } else {
+    currentUser = null; currentProfile = null; favouriteIds = new Set();
+    updateNav();
+  }
+});
+
+function updateNav() {
+  var el = document.getElementById("nav-actions");
+  if (currentUser && currentProfile) {
+    var initials = (currentProfile.full_name || currentUser.email || "?").charAt(0).toUpperCase();
+    el.innerHTML =
+      '<button class="btn btn-sm" onclick="showPage(\'listings\')"><i class="ti ti-search"></i> Anúncios</button>' +
+      (currentProfile.role === "landlord" ? '<button class="btn btn-sm btn-primary" onclick="showPage(\'post\')"><i class="ti ti-plus"></i> Anunciar</button>' : '') +
+      '<div class="nav-avatar" onclick="showPage(\'dashboard\')" title="Dashboard">' + initials + '</div>' +
+      '<button class="btn btn-sm btn-ghost" onclick="doLogout()"><i class="ti ti-logout"></i></button>';
+  } else {
+    el.innerHTML =
+      '<button class="btn btn-sm" onclick="showPage(\'listings\')"><i class="ti ti-search"></i> Anúncios</button>' +
+      '<button class="btn btn-sm btn-outline" onclick="openAuth(\'login\')">Entrar</button>' +
+      '<button class="btn btn-sm btn-primary" onclick="openAuth(\'register\')">Registar</button>';
+  }
+}
+
+// ── AUTH MODAL ─────────────────────────────────────────────────────────────
+function openAuth(tab) {
+  document.getElementById("auth-modal").classList.remove("hidden");
+  switchTab(tab);
+}
+function closeAuth() { document.getElementById("auth-modal").classList.add("hidden"); }
+document.getElementById("auth-modal").addEventListener("click", function(e) {
+  if (e.target === this) closeAuth();
+});
+function switchTab(t) {
+  document.getElementById("form-login").style.display = t === "login" ? "" : "none";
+  document.getElementById("form-register").style.display = t === "register" ? "" : "none";
+  document.getElementById("tab-login").classList.toggle("active", t === "login");
+  document.getElementById("tab-register").classList.toggle("active", t === "register");
+}
+function selectRole(r) {
+  selectedRole = r;
+  document.getElementById("role-landlord").classList.toggle("selected", r === "landlord");
+  document.getElementById("role-tenant").classList.toggle("selected", r === "tenant");
+}
+function showAuthMsg(id, msg, isErr) {
+  var el = document.getElementById(id);
+  el.textContent = msg; el.style.display = "";
+  el.className = isErr ? "auth-error" : "auth-success";
+}
+
+async function doLogin() {
+  var email = document.getElementById("login-email").value.trim();
+  var pass  = document.getElementById("login-password").value;
+  if (!email || !pass) { showAuthMsg("login-error","Preencha email e password.", true); return; }
+  var { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { showAuthMsg("login-error", error.message, true); return; }
+  closeAuth();
+  showToast("Bem-vindo de volta!");
+}
+
+async function doRegister() {
+  var name  = document.getElementById("reg-name").value.trim();
+  var email = document.getElementById("reg-email").value.trim();
+  var pass  = document.getElementById("reg-password").value;
+  if (!name || !email || !pass) { showAuthMsg("reg-error","Preencha todos os campos.", true); return; }
+  if (pass.length < 6) { showAuthMsg("reg-error","A password deve ter pelo menos 6 caracteres.", true); return; }
+  var { data, error } = await sb.auth.signUp({
+    email, password: pass,
+    options: { data: { full_name: name, role: selectedRole } }
+  });
+  if (error) { showAuthMsg("reg-error", error.message, true); return; }
+  if (data.user) {
+    await sb.from("profiles").upsert({ id: data.user.id, role: selectedRole, full_name: name });
+  }
+  showAuthMsg("reg-success", "Conta criada! Verifique o seu email para confirmar o registo.", false);
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  showToast("Sessão terminada.");
+  showPage("listings");
+}
+
+// ── FETCH LISTINGS ─────────────────────────────────────────────────────────
+async function fetchListings() {
+  try {
+    var { data, error } = await sb.from("listings").select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    all = data || [];
+    renderListings(all);
+  } catch(e) {
+    document.getElementById("listings-container").innerHTML =
+      '<div class="empty-state"><i class="ti ti-wifi-off"></i><h3>Erro ao carregar</h3><p>Não foi possível ligar à base de dados.</p></div>';
+  }
+}
+
+async function loadFavourites() {
+  if (!currentUser) return;
+  var { data } = await sb.from("favourites").select("listing_id").eq("user_id", currentUser.id);
+  favouriteIds = new Set((data || []).map(function(f){ return f.listing_id; }));
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function renderListings(list) {
+  document.getElementById("stats-bar").innerHTML =
+    "<span><strong>" + list.length + "</strong> anúncio" + (list.length!==1?"s":"") + " encontrado" + (list.length!==1?"s":"") + "</span>";
+  var c = document.getElementById("listings-container");
+  if (!list.length) {
+    c.innerHTML = '<div class="empty-state"><i class="ti ti-home-off"></i><h3>Nenhum anúncio encontrado</h3><p>Tente outros filtros.</p></div>';
+    return;
+  }
+  c.innerHTML = '<div class="listings-grid">' + list.map(cardHTML).join("") + '</div>';
+}
+
+function cardHTML(l) {
+  var icon = ICO[l.property_type] || "ti-home";
+  var label = l.typology || PT[l.property_type] || "";
+  var price = Number(l.price).toLocaleString("pt-PT");
+  var beds = l.bedrooms > 0 ? l.bedrooms + " quarto" + (l.bedrooms>1?"s":"") : "T0";
+  var area = l.area ? l.area + "m²" : "";
+  var baseTags = [label, beds, area].filter(Boolean);
+  var extras = [l.furnished?"Mobilado":"", l.pets_allowed?"Animais OK":"", l.parking?"Garagem":""].filter(Boolean);
+  var isFav = favouriteIds.has(l.id);
+  var favBtn = currentUser && currentProfile && currentProfile.role === "tenant"
+    ? '<div class="card-fav ' + (isFav?"active":"") + '" onclick="toggleFav(event,\'' + l.id + '\')" title="' + (isFav?"Remover favorito":"Guardar") + '"><i class="ti ' + (isFav?"ti-heart-filled":"ti-heart") + '"></i></div>'
+    : "";
+  return '<div class="listing-card" onclick="openDetail(\'' + l.id + '\')">' +
+    '<div class="card-img"><i class="ti ' + icon + '"></i>' + favBtn + '</div>' +
+    '<div class="card-body">' +
+      '<div class="card-price">€' + price + '<span> / mês</span></div>' +
+      '<div class="card-title">' + esc(l.title) + '</div>' +
+      '<div class="card-location"><i class="ti ti-map-pin"></i>' + esc(l.city||"") + (l.postal_code?" · "+esc(l.postal_code):"") + '</div>' +
+      '<div class="card-tags">' + baseTags.map(function(t){ return '<span class="tag">'+t+'</span>'; }).join("") +
+        extras.map(function(t){ return '<span class="tag green">'+t+'</span>'; }).join("") + '</div>' +
+    '</div></div>';
+}
+
+// ── FAVOURITES ─────────────────────────────────────────────────────────────
+async function toggleFav(e, listingId) {
+  e.stopPropagation();
+  if (!currentUser) { openAuth("register"); return; }
+  if (favouriteIds.has(listingId)) {
+    await sb.from("favourites").delete().eq("user_id", currentUser.id).eq("listing_id", listingId);
+    favouriteIds.delete(listingId);
+    showToast("Removido dos favoritos.");
+  } else {
+    await sb.from("favourites").insert({ user_id: currentUser.id, listing_id: listingId });
+    favouriteIds.add(listingId);
+    showToast("Guardado nos favoritos!");
+  }
+  renderListings(getCurrentFiltered());
+}
+
+// ── DETAIL ─────────────────────────────────────────────────────────────────
+async function openDetail(id) {
+  var l = all.find(function(x){ return x.id === id; });
+  if (!l) return;
+  currentListing = l;
+
+  // Track view
+  sb.from("listing_views").insert({ listing_id: id });
+
+  var icon = ICO[l.property_type] || "ti-home";
+  var price = Number(l.price).toLocaleString("pt-PT");
+  var label = l.typology || PT[l.property_type] || "";
+
+  document.getElementById("detail-icon").className = "ti " + icon;
+  document.getElementById("detail-title").textContent = l.title;
+  document.getElementById("detail-loc-text").textContent = [l.address, l.city, l.postal_code].filter(Boolean).join(", ");
+
+  var stats = [];
+  if (label) stats.push('<div class="stat-pill"><i class="ti ti-home-2"></i><span>'+esc(label)+'</span></div>');
+  if (l.area) stats.push('<div class="stat-pill"><i class="ti ti-ruler-2"></i><strong>'+l.area+'</strong><span> m²</span></div>');
+  if (l.bedrooms!==null) stats.push('<div class="stat-pill"><i class="ti ti-bed"></i><strong>'+l.bedrooms+'</strong><span> quarto'+(l.bedrooms!==1?"s":"")+'</span></div>');
+  if (l.bathrooms) stats.push('<div class="stat-pill"><i class="ti ti-bath"></i><strong>'+l.bathrooms+'</strong><span> WC</span></div>');
+  document.getElementById("detail-stats").innerHTML = stats.join("");
+
+  var descSec = document.getElementById("detail-desc-section");
+  if (l.description) { document.getElementById("detail-description").textContent = l.description; descSec.style.display=""; }
+  else { descSec.style.display="none"; }
+
+  function feat(ok, ic, lbl) {
+    return '<div class="feature-item '+(ok?"yes":"no")+'"><i class="ti '+(ok?ic:"ti-x")+'"></i><span>'+lbl+'</span></div>';
+  }
+  document.getElementById("detail-features").innerHTML =
+    feat(l.furnished,"ti-sofa","Mobilado") + feat(l.pets_allowed,"ti-paw","Animais permitidos") +
+    feat(l.parking,"ti-car","Estacionamento") + feat(l.elevator,"ti-elevator","Elevador") +
+    feat(l.balcony,"ti-building-arch","Varanda");
+
+  document.getElementById("contact-price").innerHTML = "€"+price+'<span> / mês</span>';
+  if (l.available_from) {
+    var d = new Date(l.available_from);
+    document.getElementById("contact-avail").innerHTML = '<i class="ti ti-calendar"></i> Disponível em '+d.toLocaleDateString("pt-PT",{month:"long",year:"numeric"});
+  } else { document.getElementById("contact-avail").textContent = ""; }
+  document.getElementById("contact-name").textContent = l.landlord_name || "Proprietário";
+
+  var actions = document.getElementById("contact-actions");
+  var note = document.getElementById("contact-note");
+  if (!currentUser) {
+    actions.innerHTML = '<button class="btn btn-primary contact-btn" onclick="openAuth(\'register\')"><i class="ti ti-mail"></i> Contactar proprietário</button>';
+    note.textContent = "Crie uma conta gratuita para contactar.";
+  } else if (currentProfile && currentProfile.role === "tenant") {
+    actions.innerHTML =
+      '<div class="contact-form">' +
+      '<textarea id="msg-input" placeholder="Olá, tenho interesse no imóvel..."></textarea>' +
+      '<button class="btn btn-primary contact-btn" onclick="sendMessage()"><i class="ti ti-send"></i> Enviar mensagem</button>' +
+      '</div>';
+    note.textContent = "Resposta típica em menos de 24h.";
+  } else {
+    actions.innerHTML = '<button class="btn btn-outline contact-btn" onclick="showPage(\'dashboard\')"><i class="ti ti-layout-dashboard"></i> Ver dashboard</button>';
+    note.textContent = "";
+  }
+
+  showPage("detail");
+}
+
+async function sendMessage() {
+  var content = document.getElementById("msg-input").value.trim();
+  if (!content) { showToast("Escreva uma mensagem.", true); return; }
+  var { error } = await sb.from("messages").insert({
+    listing_id: currentListing.id,
+    sender_id: currentUser.id,
+    content: content
+  });
+  if (error) { showToast("Erro ao enviar. Tente novamente.", true); return; }
+  showToast("Mensagem enviada!");
+  document.getElementById("msg-input").value = "";
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────────────────────
+async function showDashboard() {
+  if (!currentUser || !currentProfile) { openAuth("login"); return; }
+  var isLandlord = currentProfile.role === "landlord";
+  var sidebar = document.getElementById("dash-sidebar");
+  var content = document.getElementById("dash-content");
+
+  if (isLandlord) {
+    sidebar.innerHTML =
+      '<div class="dash-nav-item active" onclick="dashTab(this,\'overview\')" data-tab="overview"><i class="ti ti-layout-dashboard"></i> Visão geral</div>' +
+      '<div class="dash-nav-item" onclick="dashTab(this,\'mylistings\')" data-tab="mylistings"><i class="ti ti-home"></i> Os meus anúncios</div>' +
+      '<div class="dash-nav-item" onclick="dashTab(this,\'messages\')" data-tab="messages"><i class="ti ti-message"></i> Mensagens</div>';
+    content.innerHTML =
+      '<div class="dash-header"><h2>Bem-vindo, ' + esc(currentProfile.full_name || "Proprietário") + '</h2><p>Gere os seus imóveis e contactos.</p></div>' +
+      '<div id="dash-overview" class="dash-section active"></div>' +
+      '<div id="dash-mylistings" class="dash-section"></div>' +
+      '<div id="dash-messages" class="dash-section"></div>';
+    await loadLandlordOverview();
+  } else {
+    sidebar.innerHTML =
+      '<div class="dash-nav-item active" onclick="dashTab(this,\'favourites\')" data-tab="favourites"><i class="ti ti-heart"></i> Favoritos</div>' +
+      '<div class="dash-nav-item" onclick="dashTab(this,\'sent\')" data-tab="sent"><i class="ti ti-message-forward"></i> Mensagens enviadas</div>';
+    content.innerHTML =
+      '<div class="dash-header"><h2>Bem-vindo, ' + esc(currentProfile.full_name || "Arrendatário") + '</h2><p>Encontre a sua próxima casa.</p></div>' +
+      '<div id="dash-favourites" class="dash-section active"></div>' +
+      '<div id="dash-sent" class="dash-section"></div>';
+    await loadTenantFavourites();
+  }
+}
+
+function dashTab(el, tab) {
+  document.querySelectorAll(".dash-nav-item").forEach(function(n){ n.classList.remove("active"); });
+  el.classList.add("active");
+  document.querySelectorAll(".dash-section").forEach(function(s){ s.classList.remove("active"); });
+  document.getElementById("dash-" + tab).classList.add("active");
+  if (tab === "mylistings") loadMyListings();
+  if (tab === "messages") loadLandlordMessages();
+  if (tab === "sent") loadSentMessages();
+  if (tab === "favourites") loadTenantFavourites();
+}
+
+async function loadLandlordOverview() {
+  var el = document.getElementById("dash-overview");
+  el.innerHTML = '<div class="loading-state">A carregar...</div>';
+  var { data: myListings } = await sb.from("listings").select("id, title, price, city").eq("user_id", currentUser.id);
+  var { data: msgs } = await sb.from("messages").select("id, read, listing_id").in("listing_id", (myListings||[]).map(function(l){return l.id;}));
+  var { data: views } = await sb.from("listing_views").select("id, listing_id").in("listing_id", (myListings||[]).map(function(l){return l.id;}));
+  var unread = (msgs||[]).filter(function(m){ return !m.read; }).length;
+  el.innerHTML =
+    '<div class="stats-grid">' +
+    '<div class="stat-card"><div class="stat-card-label"><i class="ti ti-home"></i> Anúncios activos</div><div class="stat-card-value">' + (myListings||[]).length + '</div></div>' +
+    '<div class="stat-card"><div class="stat-card-label"><i class="ti ti-eye"></i> Total de visitas</div><div class="stat-card-value">' + (views||[]).length + '</div></div>' +
+    '<div class="stat-card"><div class="stat-card-label"><i class="ti ti-message"></i> Mensagens</div><div class="stat-card-value">' + (msgs||[]).length + '</div></div>' +
+    '<div class="stat-card"><div class="stat-card-label"><i class="ti ti-bell"></i> Não lidas</div><div class="stat-card-value">' + unread + '</div></div>' +
+    '</div>' +
+    '<button class="btn btn-primary" onclick="showPage(\'post\')"><i class="ti ti-plus"></i> Publicar novo anúncio</button>';
+}
+
+async function loadMyListings() {
+  var el = document.getElementById("dash-mylistings");
+  el.innerHTML = '<div class="loading-state">A carregar...</div>';
+  var { data } = await sb.from("listings").select("*").eq("user_id", currentUser.id).order("created_at", { ascending: false });
+  if (!data || !data.length) {
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-home-off"></i><h3>Nenhum anúncio ainda</h3><p>Publique o seu primeiro imóvel.</p><br><button class="btn btn-primary" onclick="showPage(\'post\')">Publicar imóvel</button></div>';
+    return;
+  }
+  el.innerHTML = '<div class="listings-table">' +
+    '<div class="table-header"><span>Imóvel</span><span>Cidade</span><span>Estado</span><span>Ações</span></div>' +
+    data.map(function(l) {
+      return '<div class="table-row">' +
+        '<div><div class="table-title">' + esc(l.title) + '</div><div style="font-size:12px;color:var(--muted)">€' + Number(l.price).toLocaleString("pt-PT") + '/mês</div></div>' +
+        '<div class="table-city">' + esc(l.city||"") + '</div>' +
+        '<div><span class="status-badge status-active">Activo</span></div>' +
+        '<div class="table-actions">' +
+          '<button class="btn btn-sm btn-danger" onclick="deleteListing(\'' + l.id + '\')"><i class="ti ti-trash"></i></button>' +
+        '</div>' +
+      '</div>';
+    }).join("") + '</div>';
+}
+
+async function deleteListing(id) {
+  if (!confirm("Tem a certeza que quer apagar este anúncio?")) return;
+  await sb.from("listings").delete().eq("id", id);
+  showToast("Anúncio apagado.");
+  loadMyListings();
+  loadLandlordOverview();
+}
+
+async function loadLandlordMessages() {
+  var el = document.getElementById("dash-messages");
+  el.innerHTML = '<div class="loading-state">A carregar...</div>';
+  var { data: myListings } = await sb.from("listings").select("id, title").eq("user_id", currentUser.id);
+  if (!myListings || !myListings.length) {
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-message-off"></i><h3>Sem mensagens</h3><p>Quando tiver anúncios, as mensagens aparecerão aqui.</p></div>';
+    return;
+  }
+  var listingMap = {};
+  myListings.forEach(function(l){ listingMap[l.id] = l.title; });
+  var { data: msgs } = await sb.from("messages").select("*").in("listing_id", myListings.map(function(l){return l.id;})).order("created_at", { ascending: false });
+  if (!msgs || !msgs.length) {
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-message-off"></i><h3>Sem mensagens ainda</h3></div>';
+    return;
+  }
+  // Mark as read
+  await sb.from("messages").update({ read: true }).in("listing_id", myListings.map(function(l){return l.id;}));
+  el.innerHTML = '<div class="message-list">' +
+    msgs.map(function(m) {
+      var d = new Date(m.created_at).toLocaleDateString("pt-PT");
+      return '<div class="message-card ' + (!m.read?"unread":"") + '">' +
+        '<div class="message-meta">' +
+          '<div><div class="message-from"><i class="ti ti-user" style="font-size:14px"></i> Arrendatário</div>' +
+          '<div class="message-listing"><i class="ti ti-home" style="font-size:12px"></i> ' + esc(listingMap[m.listing_id]||"") + '</div></div>' +
+          '<div class="message-date">' + d + '</div>' +
+        '</div>' +
+        '<div class="message-body">' + esc(m.content) + '</div>' +
+      '</div>';
+    }).join("") + '</div>';
+}
+
+async function loadTenantFavourites() {
+  var el = document.getElementById("dash-favourites");
+  if (!el) return;
+  el.innerHTML = '<div class="loading-state">A carregar...</div>';
+  await loadFavourites();
+  if (!favouriteIds.size) {
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-heart-off"></i><h3>Nenhum favorito ainda</h3><p>Guarde imóveis que gostar para os encontrar aqui.</p><button class="btn btn-primary" style="margin-top:16px" onclick="showPage(\'listings\')">Ver anúncios</button></div>';
+    return;
+  }
+  var { data } = await sb.from("listings").select("*").in("id", Array.from(favouriteIds));
+  el.innerHTML = '<div class="fav-grid">' + (data||[]).map(cardHTML).join("") + '</div>';
+}
+
+async function loadSentMessages() {
+  var el = document.getElementById("dash-sent");
+  if (!el) return;
+  el.innerHTML = '<div class="loading-state">A carregar...</div>';
+  var { data } = await sb.from("messages").select("*, listings(title, city)").eq("sender_id", currentUser.id).order("created_at", { ascending: false });
+  if (!data || !data.length) {
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-message-forward"></i><h3>Nenhuma mensagem enviada</h3><p>Quando contactar um proprietário, a mensagem aparecerá aqui.</p></div>';
+    return;
+  }
+  el.innerHTML = '<div class="message-list">' +
+    data.map(function(m) {
+      var d = new Date(m.created_at).toLocaleDateString("pt-PT");
+      var listingTitle = m.listings ? m.listings.title : "Imóvel";
+      var listingCity = m.listings ? m.listings.city : "";
+      return '<div class="message-card">' +
+        '<div class="message-meta">' +
+          '<div><div class="message-from"><i class="ti ti-home" style="font-size:14px"></i> ' + esc(listingTitle) + '</div>' +
+          '<div class="message-listing"><i class="ti ti-map-pin" style="font-size:12px"></i> ' + esc(listingCity) + '</div></div>' +
+          '<div class="message-date">' + d + '</div>' +
+        '</div>' +
+        '<div class="message-body">' + esc(m.content) + '</div>' +
+      '</div>';
+    }).join("") + '</div>';
+}
+
+// ── FILTERS ────────────────────────────────────────────────────────────────
+function getCheckedValues(name) {
+  var sel = name ? 'input[name="'+name+'"]:checked' : '.filter-sidebar input[type="checkbox"][value]:not([name]):checked';
+  return Array.from(document.querySelectorAll(sel)).map(function(b){ return b.value; });
+}
+
+function getCurrentFiltered() {
+  var q = document.getElementById("search-input").value.toLowerCase().trim();
+  var types = getCheckedValues(), beds = getCheckedValues("beds");
+  var priceMin = parseFloat(document.getElementById("price-min").value)||0;
+  var priceMax = parseFloat(document.getElementById("price-max").value)||Infinity;
+  var areaMin  = parseFloat(document.getElementById("area-min").value)||0;
+  var nF = document.getElementById("f-chk-furnished").checked;
+  var nP = document.getElementById("f-chk-pets").checked;
+  var nPk= document.getElementById("f-chk-parking").checked;
+  var nE = document.getElementById("f-chk-elevator").checked;
+  var nB = document.getElementById("f-chk-balcony").checked;
+  var resolvedType = "";
+  if (q) { var words=q.split(/\s+/); for(var i=0;i<words.length;i++){if(PT_TYPE_MAP[words[i]]){resolvedType=PT_TYPE_MAP[words[i]];break;}} }
+  return all.filter(function(l) {
+    var mQ = !q || [l.city,l.title,l.address,l.typology,l.description,l.postal_code].some(function(v){return v&&v.toLowerCase().includes(q);});
+    var mT = types.length ? types.indexOf(l.property_type)!==-1 : (!resolvedType || l.property_type===resolvedType);
+    var mB = !beds.length || beds.some(function(b){ return b==="4"?l.bedrooms>=4:l.bedrooms===parseInt(b); });
+    var mP = l.price>=priceMin && l.price<=priceMax;
+    var mA = !areaMin || (l.area && l.area>=areaMin);
+    var mF = (!nF||l.furnished)&&(!nP||l.pets_allowed)&&(!nPk||l.parking)&&(!nE||l.elevator)&&(!nB||l.balcony);
+    var mC = true;
+    if (cityFilter) {
+      var rc = REGIONS[cityFilter], lc = (l.city||"").toLowerCase();
+      mC = rc ? rc.some(function(c){return lc.includes(c)||c.includes(lc);}) : lc.includes(cityFilter);
+    }
+    return mQ&&mT&&mB&&mP&&mA&&mF&&mC;
+  });
+}
+
+function filterListings() { renderListings(getCurrentFiltered()); }
+
+function clearFilters() {
+  document.querySelectorAll(".filter-sidebar input[type='checkbox']").forEach(function(c){c.checked=false;});
+  document.getElementById("price-min").value="";
+  document.getElementById("price-max").value="";
+  document.getElementById("area-min").value="";
+  document.getElementById("search-input").value="";
+  setFilter(document.querySelector(".filter-chip"), "");
+}
+
+function setFilter(el, region) {
+  cityFilter = region;
+  document.querySelectorAll(".filter-chip").forEach(function(c){c.classList.remove("active");});
+  el.classList.add("active");
+  filterListings();
+}
+
+// ── NAVIGATION ─────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll(".page").forEach(function(p){p.classList.remove("active");});
+  document.getElementById("page-"+name).classList.add("active");
+  window.scrollTo(0,0);
+  if (name==="listings") fetchListings();
+  if (name==="dashboard") showDashboard();
+  if (name==="post" && !currentUser) { showPage("listings"); openAuth("login"); }
+}
+
+// ── SUBMIT LISTING ─────────────────────────────────────────────────────────
+async function submitListing() {
+  if (!currentUser) { openAuth("login"); return; }
+  var g = function(id){ return document.getElementById(id).value.trim(); };
+  var req = {"f-title":"Título","f-type":"Tipo","f-address":"Morada","f-city":"Cidade","f-price":"Renda"};
+  for (var id in req) { if(!g(id)){showToast("Preencha: "+req[id],true);document.getElementById(id).focus();return;} }
+  var body = {
+    user_id: currentUser.id,
+    title:g("f-title"), description:g("f-desc")||null, price:parseFloat(g("f-price")),
+    property_type:g("f-type"), typology:g("f-typology")||null,
+    bedrooms:parseInt(g("f-bedrooms")), bathrooms:parseInt(g("f-bathrooms")),
+    area:g("f-area")?parseFloat(g("f-area")):null,
+    address:g("f-address"), city:g("f-city"), postal_code:g("f-postal")||null,
+    available_from:document.getElementById("f-available").value||null,
+    furnished:document.getElementById("f-furnished").checked,
+    pets_allowed:document.getElementById("f-pets").checked,
+    parking:document.getElementById("f-parking").checked,
+    elevator:document.getElementById("f-elevator").checked,
+    balcony:document.getElementById("f-balcony").checked,
+    landlord_name: currentProfile ? currentProfile.full_name : null,
+    landlord_email: currentUser.email
   };
+  var { error } = await sb.from("listings").insert(body);
+  if (error) { showToast("Erro ao publicar.", true); console.error(error); return; }
+  showToast("Anúncio publicado!");
+  setTimeout(function(){ showPage("dashboard"); }, 1000);
+}
 
-  const PT_TYPE_MAP = {
-    'apartamento':'apartment','apartamentos':'apartment',
-    'moradia':'house','moradias':'house','vivenda':'house',
-    'estúdio':'studio','estudio':'studio',
-    'quarto':'room','quartos':'room',
-    'comercial':'commercial'
-  };
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function showToast(msg, err) {
+  var t=document.getElementById("toast"); t.textContent=msg;
+  t.className="toast show"+(err?" error":"");
+  setTimeout(function(){t.classList.remove("show");},3500);
+}
 
-  // ── FETCH ──────────────────────────────────────────────
-  async function fetchListings() {
-    try {
-      const r = await fetch(SB_URL + "/rest/v1/listings?order=created_at.desc", { headers: H });
-      all = await r.json();
-      if (!Array.isArray(all)) all = [];
-      renderListings(all);
-    } catch(e) {
-      document.getElementById("listings-container").innerHTML = '<div class="empty-state"><i class="ti ti-wifi-off"></i><h3>Erro ao carregar</h3><p>Não foi possível ligar à base de dados.</p></div>';
-    }
-  }
-
-  // ── LISTINGS ───────────────────────────────────────────
-  function renderListings(list) {
-    document.getElementById("stats-bar").innerHTML = "<span><strong>" + list.length + "</strong> anúncio" + (list.length!==1?"s":"") + " encontrado" + (list.length!==1?"s":"") + "</span>";
-    const c = document.getElementById("listings-container");
-    if (!list.length) {
-      c.innerHTML = '<div class="empty-state"><i class="ti ti-home-off"></i><h3>Nenhum anúncio encontrado</h3><p>Seja o primeiro a publicar nesta zona.</p><br><button class="btn btn-primary" onclick="showPage(\'post\')">Publicar imóvel</button></div>';
-      return;
-    }
-    c.innerHTML = '<div class="listings-grid">' + list.map(cardHTML).join("") + '</div>';
-  }
-
-  function cardHTML(l) {
-    const icon = ICO[l.property_type] || "ti-home";
-    const label = l.typology || PT[l.property_type] || "";
-    const price = Number(l.price).toLocaleString("pt-PT");
-    const beds = l.bedrooms > 0 ? l.bedrooms + " quarto" + (l.bedrooms>1?"s":"") : "T0";
-    const area = l.area ? l.area + "m²" : "";
-    const extras = [l.furnished?"Mobilado":"", l.pets_allowed?"Animais OK":"", l.parking?"Garagem":""].filter(Boolean);
-    const baseTags = [label, beds, area].filter(Boolean);
-    return '<div class="listing-card" onclick="openDetail(\'' + l.id + '\')">' +
-      '<div class="card-img"><i class="ti ' + icon + '"></i></div>' +
-      '<div class="card-body">' +
-        '<div class="card-price">€' + price + '<span> / mês</span></div>' +
-        '<div class="card-title">' + esc(l.title) + '</div>' +
-        '<div class="card-location"><i class="ti ti-map-pin"></i>' + esc(l.city||"") + (l.postal_code?" · "+esc(l.postal_code):"") + '</div>' +
-        '<div class="card-tags">' + baseTags.map(t=>'<span class="tag">'+t+'</span>').join("") + extras.map(t=>'<span class="tag green">'+t+'</span>').join("") + '</div>' +
-      '</div></div>';
-  }
-
-  // ── DETAIL ─────────────────────────────────────────────
-  function openDetail(id) {
-    const l = all.find(function(x){ return x.id === id; });
-    if (!l) return;
-
-    const icon = ICO[l.property_type] || "ti-home";
-    const price = Number(l.price).toLocaleString("pt-PT");
-    const label = l.typology || PT[l.property_type] || "";
-
-    // hero icon
-    document.getElementById("detail-icon").className = "ti " + icon;
-
-    // title & location
-    document.getElementById("detail-title").textContent = l.title;
-    document.getElementById("detail-location").querySelector("span").textContent =
-      [l.address, l.city, l.postal_code].filter(Boolean).join(", ");
-
-    // stat pills
-    var stats = [];
-    if (label) stats.push('<div class="stat-pill"><i class="ti ti-home-2"></i><span>' + esc(label) + '</span></div>');
-    if (l.area) stats.push('<div class="stat-pill"><i class="ti ti-ruler-2"></i><strong>' + l.area + '</strong><span>m²</span></div>');
-    if (l.bedrooms !== null) stats.push('<div class="stat-pill"><i class="ti ti-bed"></i><strong>' + l.bedrooms + '</strong><span> quarto' + (l.bedrooms!==1?"s":"") + '</span></div>');
-    if (l.bathrooms) stats.push('<div class="stat-pill"><i class="ti ti-bath"></i><strong>' + l.bathrooms + '</strong><span> casa' + (l.bathrooms!==1?"s":"") + ' de banho</span></div>');
-    document.getElementById("detail-stats").innerHTML = stats.join("");
-
-    // description
-    var descSection = document.getElementById("detail-desc-section");
-    if (l.description) {
-      document.getElementById("detail-description").textContent = l.description;
-      descSection.style.display = "";
-    } else {
-      descSection.style.display = "none";
-    }
-
-    // features
-    function feat(condition, icon, label) {
-      var cls = condition ? "yes" : "no";
-      var ic = condition ? icon : "ti-x";
-      return '<div class="feature-item ' + cls + '"><i class="ti ' + ic + '"></i><span>' + label + '</span></div>';
-    }
-    document.getElementById("detail-features").innerHTML =
-      feat(l.furnished, "ti-sofa", "Mobilado") +
-      feat(l.pets_allowed, "ti-paw", "Animais permitidos") +
-      feat(l.parking, "ti-car", "Estacionamento") +
-      feat(l.elevator, "ti-elevator", "Elevador") +
-      feat(l.balcony, "ti-building-arch", "Varanda");
-
-    // availability
-    var availSection = document.getElementById("detail-avail-section");
-    if (l.available_from) {
-      var d = new Date(l.available_from);
-      var opts = { year:"numeric", month:"long", day:"numeric" };
-      document.getElementById("detail-availability").textContent = "Disponível a partir de " + d.toLocaleDateString("pt-PT", opts);
-      availSection.style.display = "";
-    } else {
-      availSection.style.display = "none";
-    }
-
-    // contact card
-    document.getElementById("contact-price").innerHTML = "€" + price + '<span> / mês</span>';
-    if (l.available_from) {
-      var d2 = new Date(l.available_from);
-      document.getElementById("contact-avail").innerHTML = '<i class="ti ti-calendar"></i> Disponível em ' + d2.toLocaleDateString("pt-PT", {month:"long", year:"numeric"});
-    } else {
-      document.getElementById("contact-avail").textContent = "";
-    }
-    document.getElementById("contact-name").textContent = l.landlord_name || "Proprietário";
-
-    var emailBtn = document.getElementById("contact-email-btn");
-    emailBtn.onclick = function(){ window.location.href = "mailto:" + (l.landlord_email||"") + "?subject=Interesse no imóvel: " + encodeURIComponent(l.title); };
-
-    var phoneBtn = document.getElementById("contact-phone-btn");
-    if (l.landlord_phone) {
-      phoneBtn.style.display = "";
-      var revealed = false;
-      phoneBtn.onclick = function() {
-        if (!revealed) { phoneBtn.innerHTML = '<i class="ti ti-phone"></i> ' + esc(l.landlord_phone); revealed = true; }
-        else { window.location.href = "tel:" + l.landlord_phone; }
-      };
-    } else {
-      phoneBtn.style.display = "none";
-    }
-
-    // costs
-    document.getElementById("cost-rent").textContent = "€" + price + "/mês";
-    if (l.deposit) {
-      document.getElementById("cost-deposit-row").style.display = "";
-      document.getElementById("cost-deposit").textContent = "€" + Number(l.deposit).toLocaleString("pt-PT");
-    } else {
-      document.getElementById("cost-deposit-row").style.display = "none";
-    }
-
-    showPage("detail");
-    window.scrollTo(0, 0);
-  }
-
-  // ── FILTERS ────────────────────────────────────────────
-  function getCheckedValues(name) {
-    var boxes = name
-      ? document.querySelectorAll('input[name="' + name + '"]:checked')
-      : document.querySelectorAll('.filter-sidebar input[type="checkbox"][value]:not([name]):checked');
-    return Array.from(boxes).map(function(b){ return b.value; });
-  }
-
-  function filterListings() {
-    var q = document.getElementById("search-input").value.toLowerCase().trim();
-
-    // Sidebar filters
-    var types    = getCheckedValues();           // type checkboxes (no name attr)
-    var beds     = getCheckedValues("beds");
-    var priceMin = parseFloat(document.getElementById("price-min").value) || 0;
-    var priceMax = parseFloat(document.getElementById("price-max").value) || Infinity;
-    var areaMin  = parseFloat(document.getElementById("area-min").value) || 0;
-    var needFurnished = document.getElementById("f-chk-furnished").checked;
-    var needPets      = document.getElementById("f-chk-pets").checked;
-    var needParking   = document.getElementById("f-chk-parking").checked;
-    var needElevator  = document.getElementById("f-chk-elevator").checked;
-    var needBalcony   = document.getElementById("f-chk-balcony").checked;
-
-    // Allow searching by Portuguese type name
-    var resolvedType = "";
-    if (q) {
-      var words = q.split(/\s+/);
-      for (var i = 0; i < words.length; i++) {
-        if (PT_TYPE_MAP[words[i]]) { resolvedType = PT_TYPE_MAP[words[i]]; break; }
-      }
-    }
-
-    renderListings(all.filter(function(l) {
-      var searchFields = [l.city, l.title, l.address, l.typology, l.description, l.postal_code];
-      var mQ = !q || searchFields.some(function(v){ return v && v.toLowerCase().includes(q); });
-
-      var mT = true;
-      if (types.length)        mT = types.indexOf(l.property_type) !== -1;
-      else if (resolvedType)   mT = l.property_type === resolvedType;
-
-      var mB = !beds.length || beds.some(function(b){
-        return b === "4" ? l.bedrooms >= 4 : l.bedrooms === parseInt(b);
-      });
-
-      var mP = l.price >= priceMin && l.price <= priceMax;
-      var mA = !areaMin || (l.area && l.area >= areaMin);
-
-      var mF = (!needFurnished || l.furnished) &&
-               (!needPets     || l.pets_allowed) &&
-               (!needParking  || l.parking) &&
-               (!needElevator || l.elevator) &&
-               (!needBalcony  || l.balcony);
-
-      var mC = true;
-      if (cityFilter) {
-        var regionCities = REGIONS[cityFilter];
-        var lCity = (l.city || "").toLowerCase();
-        mC = regionCities
-          ? regionCities.some(function(c){ return lCity.includes(c) || c.includes(lCity); })
-          : lCity.includes(cityFilter);
-      }
-
-      return mQ && mT && mB && mP && mA && mF && mC;
-    }));
-  }
-
-  function clearFilters() {
-    document.querySelectorAll(".filter-sidebar input[type='checkbox']").forEach(function(c){ c.checked = false; });
-    document.getElementById("price-min").value = "";
-    document.getElementById("price-max").value = "";
-    document.getElementById("area-min").value = "";
-    document.getElementById("search-input").value = "";
-    setFilter(document.querySelector(".filter-chip"), "");
-  }
-
-  function setFilter(el, region) {
-    cityFilter = region;
-    document.querySelectorAll(".filter-chip").forEach(function(c){ c.classList.remove("active"); });
-    el.classList.add("active");
-    filterListings();
-  }
-
-  // ── NAVIGATION ─────────────────────────────────────────
-  function showPage(name) {
-    document.querySelectorAll(".page").forEach(function(p){ p.classList.remove("active"); });
-    document.getElementById("page-" + name).classList.add("active");
-    if (name === "listings") fetchListings();
-    window.scrollTo(0, 0);
-  }
-
-  // ── TOAST ──────────────────────────────────────────────
-  function showToast(msg, err) {
-    var t = document.getElementById("toast");
-    t.textContent = msg;
-    t.className = "toast show" + (err ? " error" : "");
-    setTimeout(function(){ t.classList.remove("show"); }, 3500);
-  }
-
-  // ── SUBMIT ─────────────────────────────────────────────
-  async function submitListing() {
-    var g = function(id){ return document.getElementById(id).value.trim(); };
-    var req = {"f-title":"Título","f-type":"Tipo de imóvel","f-address":"Morada","f-city":"Cidade","f-price":"Renda"};
-    for (var id in req) {
-      if (!g(id)) { showToast("Por favor preencha: " + req[id], true); document.getElementById(id).focus(); return; }
-    }
-    var body = {
-      title: g("f-title"), description: g("f-desc") || null, price: parseFloat(g("f-price")),
-      property_type: g("f-type"), typology: g("f-typology") || null,
-      bedrooms: parseInt(g("f-bedrooms")), bathrooms: parseInt(g("f-bathrooms")),
-      area: g("f-area") ? parseFloat(g("f-area")) : null,
-      address: g("f-address"), city: g("f-city"), postal_code: g("f-postal") || null,
-      available_from: document.getElementById("f-available").value || null,
-      furnished: document.getElementById("f-furnished").checked,
-      pets_allowed: document.getElementById("f-pets").checked,
-      parking: document.getElementById("f-parking").checked,
-      elevator: document.getElementById("f-elevator").checked,
-      balcony: document.getElementById("f-balcony").checked
-    };
-    try {
-      var r = await fetch(SB_URL + "/rest/v1/listings", {
-        method: "POST",
-        headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=representation"}),
-        body: JSON.stringify(body)
-      });
-      if (r.ok) { showToast("✓ Anúncio publicado com sucesso!"); setTimeout(function(){ showPage("listings"); }, 1200); }
-      else { showToast("Erro ao publicar. Tente novamente.", true); }
-    } catch(e) { showToast("Erro de ligação. Tente novamente.", true); }
-  }
-
-  fetchListings();
+fetchListings();
 </script>
 </body>
 </html>
