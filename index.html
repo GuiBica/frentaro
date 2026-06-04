@@ -1022,4 +1022,139 @@ function getCurrentFiltered() {
   var fE    = document.getElementById("f-chk-elevator").checked;
   var fB    = document.getElementById("f-chk-balcony").checked;
   return allListings.filter(function(l) {
-    var mQ  = !q || [l.city,l.title,l.address,l.typology,
+    var mQ  = !q || [l.city,l.title,l.address,l.typology,l.description,l.postal_code].some(function(v){ return v&&v.toLowerCase().includes(q); });
+    var mT  = !types.length || types.indexOf(l.property_type)!==-1;
+    var mB  = !beds.length  || beds.some(function(b){ return b==="4"?l.bedrooms>=4:l.bedrooms===parseInt(b); });
+    var mP  = l.price>=pMin && l.price<=pMax;
+    var mA  = !aMin || (l.area&&l.area>=aMin);
+    var mF  = (!fF||l.furnished)&&(!fP||l.pets_allowed)&&(!fPk||l.parking)&&(!fE||l.elevator)&&(!fB||l.balcony);
+    var mC  = true;
+    if (cityFilter) {
+      var rc = REGIONS[cityFilter], lc=(l.city||"").toLowerCase();
+      mC = rc ? rc.some(function(c){ return lc.includes(c)||c.includes(lc); }) : lc.includes(cityFilter);
+    }
+    return mQ&&mT&&mB&&mP&&mA&&mF&&mC;
+  });
+}
+function filterListings() { renderListings(getCurrentFiltered()); }
+function setFilter(el, r) {
+  cityFilter = r;
+  document.querySelectorAll(".filter-chip").forEach(function(c){ c.classList.remove("active"); });
+  el.classList.add("active"); filterListings();
+}
+function clearFilters() {
+  document.querySelectorAll(".filter-sidebar input[type='checkbox']").forEach(function(c){ c.checked=false; });
+  ["price-min","price-max","area-min","search-input"].forEach(function(id){ document.getElementById(id).value=""; });
+  setFilter(document.querySelector(".filter-chip"), "");
+}
+
+// ── IMAGE UPLOAD ──────────────────────────────────────────────────────────
+function handleImageSelect(files) {
+  var rem = 6 - pendingImages.length;
+  Array.from(files).slice(0, rem).forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) { pendingImages.push({file:file, preview:e.target.result}); renderPreviews(); };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById("img-input").value = "";
+}
+function handleDrop(e) {
+  e.preventDefault(); document.getElementById("upload-area").classList.remove("drag");
+  handleImageSelect(e.dataTransfer.files);
+}
+function removeImage(i) { pendingImages.splice(i,1); renderPreviews(); }
+function renderPreviews() {
+  document.getElementById("img-preview").innerHTML = pendingImages.map(function(img,i){
+    return '<div class="img-thumb"><img src="'+img.preview+'"><button class="img-thumb-remove" onclick="removeImage('+i+')"><i class="ti ti-x"></i></button></div>';
+  }).join("");
+  document.getElementById("upload-area").style.display = pendingImages.length>=6?"none":"";
+}
+async function uploadImages(listingId, token) {
+  var urls = [];
+  for (var i=0; i<pendingImages.length; i++) {
+    var img = pendingImages[i];
+    var ext = img.file.name.split(".").pop();
+    var path = currentUser.id+"/"+listingId+"/"+Date.now()+"-"+i+"."+ext;
+    var r = await fetch(SB_URL+"/storage/v1/object/listing-images/"+path, {
+      method:"POST",
+      headers:{ "apikey":SB_ANON, "Authorization":"Bearer "+token, "Content-Type":img.file.type },
+      body: img.file
+    });
+    if (r.ok) urls.push(SB_URL+"/storage/v1/object/public/listing-images/"+path);
+  }
+  return urls;
+}
+
+// ── SUBMIT LISTING ────────────────────────────────────────────────────────
+async function submitListing() {
+  if (!currentUser) { openAuth("login"); return; }
+  var g = function(id){ return document.getElementById(id).value.trim(); };
+  var required = {"f-title":"Título","f-type":"Tipo","f-address":"Morada","f-city":"Cidade","f-price":"Renda"};
+  for (var id in required) { if(!g(id)){ showToast("Preencha: "+required[id],true); document.getElementById(id).focus(); return; } }
+  var btn = document.getElementById("submit-btn");
+  btn.disabled=true; btn.innerHTML='<i class="ti ti-loader-2"></i> A publicar...';
+  var tok = await getAccessToken();
+  var body = {
+    user_id:currentUser.id, title:g("f-title"), description:g("f-desc")||null,
+    price:parseFloat(g("f-price")), property_type:g("f-type"), typology:g("f-typology")||null,
+    bedrooms:parseInt(g("f-bedrooms")), bathrooms:parseInt(g("f-bathrooms")),
+    area:g("f-area")?parseFloat(g("f-area")):null,
+    address:g("f-address"), city:g("f-city"), postal_code:g("f-postal")||null,
+    available_from:document.getElementById("f-available").value||null,
+    furnished:document.getElementById("f-furnished").checked,
+    pets_allowed:document.getElementById("f-pets").checked,
+    parking:document.getElementById("f-parking").checked,
+    elevator:document.getElementById("f-elevator").checked,
+    balcony:document.getElementById("f-balcony").checked,
+    landlord_name:currentProfile?currentProfile.full_name:null,
+    landlord_email:currentUser.email
+  };
+  var r = await fetch(SB_URL+"/rest/v1/listings", {
+    method:"POST",
+    headers:{ "apikey":SB_ANON, "Authorization":"Bearer "+tok, "Content-Type":"application/json", "Prefer":"return=representation" },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) {
+    btn.disabled=false; btn.innerHTML='<i class="ti ti-send"></i> Publicar anúncio';
+    showToast("Erro ao publicar.",true); return;
+  }
+  var inserted = await r.json();
+  var listingId = Array.isArray(inserted) ? inserted[0].id : inserted.id;
+  if (pendingImages.length && listingId) {
+    btn.innerHTML='<i class="ti ti-loader-2"></i> A carregar fotos...';
+    var urls = await uploadImages(listingId, tok);
+    if (urls.length) {
+      await fetch(SB_URL+"/rest/v1/listings?id=eq."+listingId, {
+        method:"PATCH",
+        headers:{ "apikey":SB_ANON, "Authorization":"Bearer "+tok, "Content-Type":"application/json" },
+        body: JSON.stringify({ images: urls })
+      });
+    }
+  }
+  pendingImages = []; renderPreviews();
+  ["f-title","f-typology","f-area","f-desc","f-address","f-city","f-postal","f-price","f-available"].forEach(function(id){ document.getElementById(id).value=""; });
+  btn.disabled=false; btn.innerHTML='<i class="ti ti-send"></i> Publicar anúncio';
+  showToast("Anúncio publicado!");
+  setTimeout(function(){ showPage("dashboard"); }, 1000);
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll(".page").forEach(function(p){ p.classList.remove("active"); });
+  document.getElementById("page-"+name).classList.add("active");
+  window.scrollTo(0,0);
+  if (name==="listings")  fetchListings();
+  if (name==="dashboard") showDashboard();
+  if (name==="post" && !currentUser) { showPage("listings"); openAuth("login"); }
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function showToast(msg, err) {
+  var t=document.getElementById("toast"); t.textContent=msg;
+  t.className="toast show"+(err?" error":"");
+  setTimeout(function(){ t.classList.remove("show"); }, 3500);
+}
+</script>
+</body>
+</html>
