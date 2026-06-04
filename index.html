@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- homie v3.1 -->
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
@@ -1359,166 +1360,170 @@ async function saveProfile() {
 }
 
 // ── MESSAGING SYSTEM ──────────────────────────────────────────────────────
-var currentThread = null; // { listing, otherUserId, otherName, messages }
 
-// Replace loadMessages (landlord inbox) with thread-based view
 async function loadMessages() {
   var el = document.getElementById("dash-messages");
   el.innerHTML = '<div class="loading-state">A carregar...</div>';
   var tok = await getAccessToken();
-  var h = { "apikey":SB_ANON, "Authorization":"Bearer "+tok };
+  var h = { "apikey": SB_ANON, "Authorization": "Bearer " + tok };
 
-  // Get landlord's listings
-  var r1 = await fetch(SB_URL+"/rest/v1/listings?select=id,title&user_id=eq."+currentUser.id, { headers:h });
-  var myL = await r1.json(); myL = Array.isArray(myL)?myL:[];
-  if (!myL.length) { el.innerHTML='<div class="empty-state"><i class="ti ti-message-off"></i><h3>Sem mensagens</h3><p>Quando tiver anúncios publicados, as mensagens dos arrendatários aparecerão aqui.</p></div>'; return; }
+  var r1 = await fetch(SB_URL + "/rest/v1/listings?select=id,title&user_id=eq." + currentUser.id, { headers: h });
+  var myL = await r1.json(); myL = Array.isArray(myL) ? myL : [];
+  if (!myL.length) {
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-message-off"></i><h3>Sem mensagens</h3><p>Publique anúncios para receber mensagens.</p></div>';
+    return;
+  }
+  var listingMap = {};
+  myL.forEach(function(l) { listingMap[l.id] = l.title; });
+  var ids = myL.map(function(l) { return l.id; }).join(",");
 
-  var listingMap = {}; myL.forEach(function(l){ listingMap[l.id]=l.title; });
-  var ids = myL.map(function(l){ return l.id; }).join(",");
-
-  // Get all messages for these listings grouped by sender
-  var r2 = await fetch(SB_URL+"/rest/v1/messages?select=*&listing_id=in.("+ids+")&order=created_at.desc", { headers:h });
-  var msgs = await r2.json(); msgs = Array.isArray(msgs)?msgs:[];
-
-  if (!msgs.length) { el.innerHTML='<div class="empty-state"><i class="ti ti-message-off"></i><h3>Sem mensagens ainda</h3><p>Os arrendatários ainda não entraram em contacto.</p></div>'; return; }
+  var r2 = await fetch(SB_URL + "/rest/v1/messages?select=*&listing_id=in.(" + ids + ")&order=created_at.desc", { headers: h });
+  var msgs = await r2.json(); msgs = Array.isArray(msgs) ? msgs : [];
+  if (!msgs.length) {
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-message-off"></i><h3>Sem mensagens ainda</h3><p>Os arrendatários ainda não entraram em contacto.</p></div>';
+    return;
+  }
 
   // Group by sender+listing
   var threads = {};
   msgs.forEach(function(m) {
-    var key = m.sender_id+"_"+m.listing_id;
-    if (!threads[key]) threads[key] = { senderId:m.sender_id, listingId:m.listing_id, msgs:[], hasUnread:false };
+    var key = m.sender_id + "_" + m.listing_id;
+    if (!threads[key]) threads[key] = { senderId: m.sender_id, listingId: m.listing_id, msgs: [], hasUnread: false };
     threads[key].msgs.push(m);
     if (!m.read) threads[key].hasUnread = true;
   });
 
-  el.innerHTML = '<div class="thread-list">' +
-    Object.values(threads).map(function(t) {
-      var last = t.msgs[0];
-      var d = new Date(last.created_at).toLocaleDateString("pt-PT");
-      return '<div class="thread-item'+(t.hasUnread?" unread":""")+'" onclick="openThreadLandlord(''+t.senderId+'',''+t.listingId+'',''+esc(listingMap[t.listingId]||"")+'')">' +
-        '<div class="thread-header">' +
-          '<div>' +
-            '<div class="thread-name"><i class="ti ti-user" style="font-size:13px"></i> Arrendatário</div>' +
-            '<div class="thread-listing"><i class="ti ti-home" style="font-size:11px"></i> '+esc(listingMap[t.listingId]||"")+'</div>' +
-          '</div>' +
-          '<div style="display:flex;align-items:center;gap:6px">' +
-            '<div class="thread-date">'+d+'</div>' +
-            (t.hasUnread?'<div class="thread-unread-dot"></div>':'') +
-          '</div>' +
-        '</div>' +
-        '<div class="thread-preview">'+esc(last.content)+'</div>' +
-      '</div>';
-    }).join("") + '</div>';
+  var html = '<div class="thread-list">';
+  Object.values(threads).forEach(function(t) {
+    var last = t.msgs[0];
+    var d = new Date(last.created_at).toLocaleDateString("pt-PT");
+    var title = esc(listingMap[t.listingId] || "");
+    html += '<div class="thread-item' + (t.hasUnread ? " unread" : "") + '" data-sender="' + t.senderId + '" data-listing="' + t.listingId + '" data-title="' + title + '">';
+    html += '<div class="thread-header">';
+    html += '<div><div class="thread-name"><i class="ti ti-user" style="font-size:13px"></i> Arrendatário</div>';
+    html += '<div class="thread-listing"><i class="ti ti-home" style="font-size:11px"></i> ' + title + '</div></div>';
+    html += '<div style="display:flex;align-items:center;gap:6px"><div class="thread-date">' + d + '</div>';
+    html += (t.hasUnread ? '<div class="thread-unread-dot"></div>' : '') + '</div></div>';
+    html += '<div class="thread-preview">' + esc(last.content) + '</div></div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+
+  el.querySelectorAll(".thread-item").forEach(function(item) {
+    item.addEventListener("click", function() {
+      openThreadLandlord(item.dataset.sender, item.dataset.listing, item.dataset.title);
+    });
+  });
 }
 
 async function openThreadLandlord(senderId, listingId, listingTitle) {
   var el = document.getElementById("dash-messages");
   el.innerHTML = '<div class="loading-state">A carregar conversa...</div>';
   var tok = await getAccessToken();
-  var h = { "apikey":SB_ANON, "Authorization":"Bearer "+tok };
-
-  var r = await fetch(SB_URL+"/rest/v1/messages?select=*&listing_id=eq."+listingId+"&sender_id=eq."+senderId+"&order=created_at.asc", { headers:h });
-  var msgs = await r.json(); msgs = Array.isArray(msgs)?msgs:[];
-
-  // Mark as read
-  fetch(SB_URL+"/rest/v1/messages?listing_id=eq."+listingId+"&sender_id=eq."+senderId, {
-    method:"PATCH", headers:Object.assign({"Content-Type":"application/json"},h), body:'{"read":true}'
+  var h = { "apikey": SB_ANON, "Authorization": "Bearer " + tok };
+  var r = await fetch(SB_URL + "/rest/v1/messages?select=*&listing_id=eq." + listingId + "&sender_id=eq." + senderId + "&order=created_at.asc", { headers: h });
+  var msgs = await r.json(); msgs = Array.isArray(msgs) ? msgs : [];
+  fetch(SB_URL + "/rest/v1/messages?listing_id=eq." + listingId + "&sender_id=eq." + senderId, {
+    method: "PATCH", headers: Object.assign({ "Content-Type": "application/json" }, h), body: '{"read":true}'
   });
-
   renderConversation(el, msgs, listingId, senderId, listingTitle, "landlord");
 }
 
 async function loadSentMessages() {
-  var el = document.getElementById("dash-sent"); if(!el) return;
+  var el = document.getElementById("dash-sent"); if (!el) return;
   el.innerHTML = '<div class="loading-state">A carregar...</div>';
   var tok = await getAccessToken();
-  var h = { "apikey":SB_ANON, "Authorization":"Bearer "+tok };
+  var h = { "apikey": SB_ANON, "Authorization": "Bearer " + tok };
 
-  // Get unique listing threads this tenant has messaged
-  var r = await fetch(SB_URL+"/rest/v1/messages?select=listing_id&sender_id=eq."+currentUser.id, { headers:h });
-  var rows = await r.json(); rows = Array.isArray(rows)?rows:[];
-  var listingIds = [...new Set(rows.map(function(r){ return r.listing_id; }))];
+  var r1 = await fetch(SB_URL + "/rest/v1/messages?select=listing_id&sender_id=eq." + currentUser.id, { headers: h });
+  var rows = await r1.json(); rows = Array.isArray(rows) ? rows : [];
+  var listingIds = [];
+  rows.forEach(function(r) { if (listingIds.indexOf(r.listing_id) === -1) listingIds.push(r.listing_id); });
 
-  if (!listingIds.length) { el.innerHTML='<div class="empty-state"><i class="ti ti-message-forward"></i><h3>Sem mensagens enviadas</h3><p>Contacte proprietários nos anúncios para iniciar uma conversa.</p></div>'; return; }
+  if (!listingIds.length) {
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-message-forward"></i><h3>Sem mensagens enviadas</h3><p>Contacte proprietários nos anúncios.</p></div>';
+    return;
+  }
 
-  // Get listing details
-  var r2 = await fetch(SB_URL+"/rest/v1/listings?select=id,title,city,user_id&id=in.("+listingIds.join(",")+")", { headers:{ "apikey":SB_ANON, "Authorization":"Bearer "+SB_ANON } });
-  var listings = await r2.json(); listings = Array.isArray(listings)?listings:[];
+  var r2 = await fetch(SB_URL + "/rest/v1/listings?select=id,title,city,user_id&id=in.(" + listingIds.join(",") + ")", {
+    headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON }
+  });
+  var listings = await r2.json(); listings = Array.isArray(listings) ? listings : [];
 
-  // Get last message per listing
-  var r3 = await fetch(SB_URL+"/rest/v1/messages?select=*&sender_id=eq."+currentUser.id+"&listing_id=in.("+listingIds.join(",")+")&order=created_at.desc", { headers:h });
-  var allMsgs = await r3.json(); allMsgs = Array.isArray(allMsgs)?allMsgs:[];
+  var r3 = await fetch(SB_URL + "/rest/v1/messages?select=*&sender_id=eq." + currentUser.id + "&listing_id=in.(" + listingIds.join(",") + ")&order=created_at.desc", { headers: h });
+  var allMsgs = await r3.json(); allMsgs = Array.isArray(allMsgs) ? allMsgs : [];
 
-  el.innerHTML = '<div class="thread-list">' +
-    listings.map(function(l) {
-      var last = allMsgs.find(function(m){ return m.listing_id===l.id; });
-      var d = last ? new Date(last.created_at).toLocaleDateString("pt-PT") : "";
-      return '<div class="thread-item" onclick="openThreadTenant(''+l.id+'',''+esc(l.title)+'',''+l.user_id+'')">' +
-        '<div class="thread-header">' +
-          '<div>' +
-            '<div class="thread-name">'+esc(l.title)+'</div>' +
-            '<div class="thread-listing"><i class="ti ti-map-pin" style="font-size:11px"></i> '+esc(l.city||"")+'</div>' +
-          '</div>' +
-          '<div class="thread-date">'+d+'</div>' +
-        '</div>' +
-        '<div class="thread-preview">'+(last?esc(last.content):"")+'</div>' +
-      '</div>';
-    }).join("") + '</div>';
+  var html = '<div class="thread-list">';
+  listings.forEach(function(l) {
+    var last = allMsgs.find(function(m) { return m.listing_id === l.id; });
+    var d = last ? new Date(last.created_at).toLocaleDateString("pt-PT") : "";
+    html += '<div class="thread-item" data-listing="' + l.id + '" data-title="' + esc(l.title) + '" data-landlord="' + l.user_id + '">';
+    html += '<div class="thread-header"><div><div class="thread-name">' + esc(l.title) + '</div>';
+    html += '<div class="thread-listing"><i class="ti ti-map-pin" style="font-size:11px"></i> ' + esc(l.city || "") + '</div></div>';
+    html += '<div class="thread-date">' + d + '</div></div>';
+    html += '<div class="thread-preview">' + (last ? esc(last.content) : "") + '</div></div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+
+  el.querySelectorAll(".thread-item").forEach(function(item) {
+    item.addEventListener("click", function() {
+      openThreadTenant(item.dataset.listing, item.dataset.title, item.dataset.landlord);
+    });
+  });
 }
 
 async function openThreadTenant(listingId, listingTitle, landlordId) {
-  var el = document.getElementById("dash-sent"); if(!el) return;
+  var el = document.getElementById("dash-sent"); if (!el) return;
   el.innerHTML = '<div class="loading-state">A carregar conversa...</div>';
   var tok = await getAccessToken();
-  var h = { "apikey":SB_ANON, "Authorization":"Bearer "+tok };
-  var r = await fetch(SB_URL+"/rest/v1/messages?select=*&listing_id=eq."+listingId+"&sender_id=eq."+currentUser.id+"&order=created_at.asc", { headers:h });
-  var msgs = await r.json(); msgs = Array.isArray(msgs)?msgs:[];
+  var h = { "apikey": SB_ANON, "Authorization": "Bearer " + tok };
+  var r = await fetch(SB_URL + "/rest/v1/messages?select=*&listing_id=eq." + listingId + "&sender_id=eq." + currentUser.id + "&order=created_at.asc", { headers: h });
+  var msgs = await r.json(); msgs = Array.isArray(msgs) ? msgs : [];
   renderConversation(el, msgs, listingId, landlordId, listingTitle, "tenant");
 }
 
 function renderConversation(el, msgs, listingId, otherId, listingTitle, role) {
-  var backFn = role==="landlord" ? "loadMessages()" : "loadSentMessages()";
-  el.innerHTML =
-    '<div class="conversation-header">' +
-      '<i class="ti ti-arrow-left conv-back" onclick="'+backFn+'"></i>' +
-      '<div class="conv-info">' +
-        '<h3>'+esc(listingTitle)+'</h3>' +
-        '<p>'+(role==="landlord"?"Mensagem de arrendatário":"Conversa com proprietário")+'</p>' +
-      '</div>' +
-    '</div>' +
-    '<div class="conv-messages" id="conv-msgs">' +
-      msgs.map(function(m) {
-        var isMine = m.sender_id === currentUser.id;
-        var d = new Date(m.created_at).toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"})+" · "+new Date(m.created_at).toLocaleDateString("pt-PT");
-        return '<div class="conv-msg '+(isMine?"mine":"theirs")+'">' +
-          '<div class="conv-bubble">'+esc(m.content)+'</div>' +
-          '<div class="conv-time">'+d+'</div>' +
-        '</div>';
-      }).join("") +
-    '</div>' +
-    '<div class="conv-input">' +
-      '<textarea id="reply-input" placeholder="Escreva uma mensagem..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendReply(''+listingId+'',''+otherId+'',''+listingTitle+'',''+role+'')}"></textarea>' +
-      '<button class="btn btn-primary" onclick="sendReply(''+listingId+'',''+otherId+'',''+listingTitle+'',''+role+'')"><i class="ti ti-send"></i></button>' +
-    '</div>';
+  var backFn = role === "landlord" ? "loadMessages()" : "loadSentMessages()";
+  var html = '<div class="conversation-header">';
+  html += '<i class="ti ti-arrow-left conv-back" onclick="' + backFn + '"></i>';
+  html += '<div class="conv-info"><h3>' + esc(listingTitle) + '</h3>';
+  html += '<p>' + (role === "landlord" ? "Mensagem de arrendatário" : "Conversa com proprietário") + '</p></div></div>';
+  html += '<div class="conv-messages" id="conv-msgs">';
+  msgs.forEach(function(m) {
+    var isMine = m.sender_id === currentUser.id;
+    var d = new Date(m.created_at).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" }) + " · " + new Date(m.created_at).toLocaleDateString("pt-PT");
+    html += '<div class="conv-msg ' + (isMine ? "mine" : "theirs") + '">';
+    html += '<div class="conv-bubble">' + esc(m.content) + '</div>';
+    html += '<div class="conv-time">' + d + '</div></div>';
+  });
+  html += '</div>';
+  html += '<div class="conv-input">';
+  html += '<textarea id="reply-input" placeholder="Escreva uma mensagem..."></textarea>';
+  html += '<button class="btn btn-primary" id="reply-btn"><i class="ti ti-send"></i></button></div>';
+  el.innerHTML = html;
 
-  // scroll to bottom
-  setTimeout(function(){ var cm=document.getElementById("conv-msgs"); if(cm) cm.scrollTop=cm.scrollHeight; }, 50);
+  document.getElementById("reply-btn").addEventListener("click", function() {
+    sendReply(listingId, otherId, listingTitle, role);
+  });
+  document.getElementById("reply-input").addEventListener("keydown", function(e) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(listingId, otherId, listingTitle, role); }
+  });
+  setTimeout(function() { var cm = document.getElementById("conv-msgs"); if (cm) cm.scrollTop = cm.scrollHeight; }, 50);
 }
 
 async function sendReply(listingId, otherId, listingTitle, role) {
   var input = document.getElementById("reply-input");
-  var content = input.value.trim(); if(!content) return;
+  var content = input.value.trim(); if (!content) return;
   var tok = await getAccessToken();
-  var r = await fetch(SB_URL+"/rest/v1/messages", {
-    method:"POST",
-    headers:{ "apikey":SB_ANON, "Authorization":"Bearer "+tok, "Content-Type":"application/json", "Prefer":"return=representation" },
-    body: JSON.stringify({ listing_id:listingId, sender_id:currentUser.id, receiver_id:otherId, content:content, read:false })
+  var r = await fetch(SB_URL + "/rest/v1/messages", {
+    method: "POST",
+    headers: { "apikey": SB_ANON, "Authorization": "Bearer " + tok, "Content-Type": "application/json" },
+    body: JSON.stringify({ listing_id: listingId, sender_id: currentUser.id, receiver_id: otherId, content: content, read: false })
   });
   if (r.ok) {
     input.value = "";
-    // Refresh conversation
-    var el = role==="landlord" ? document.getElementById("dash-messages") : document.getElementById("dash-sent");
-    if (role==="landlord") openThreadLandlord(otherId, listingId, listingTitle);
+    if (role === "landlord") openThreadLandlord(otherId, listingId, listingTitle);
     else openThreadTenant(listingId, listingTitle, otherId);
   } else { showToast("Erro ao enviar.", true); }
 }
