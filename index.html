@@ -546,6 +546,8 @@ var REGIONS = {
 // ── INIT: fetch listings immediately, then check auth ─────────────────────
 window.addEventListener("DOMContentLoaded", function() {
   fetchListings();
+  // Handle initial hash after listings load
+  setTimeout(handleHash, 300);
   sb.auth.getSession().then(function(r) {
     if (r.data && r.data.session) {
       handleSession(r.data.session);
@@ -762,7 +764,7 @@ function openDetail(id) {
     body: JSON.stringify({ listing_id: id })
   });
 
-  showPage("detail");
+  showPage("detail", l.id);
 }
 
 function prevImg(id) {
@@ -789,7 +791,7 @@ async function sendMessage() {
   var r = await fetch(SB_URL + "/rest/v1/messages", {
     method:"POST",
     headers:{ "apikey":SB_ANON, "Authorization":"Bearer "+sess.access_token, "Content-Type":"application/json" },
-    body: JSON.stringify({ listing_id: currentListing.id, sender_id: currentUser.id, content: content })
+    body: JSON.stringify({ listing_id: currentListing.id, sender_id: currentUser.id, receiver_id: currentListing.user_id, message: content })
   });
   if (r.ok) { showToast("Mensagem enviada!"); document.getElementById("msg-input").value = ""; }
   else showToast("Erro ao enviar.", true);
@@ -1038,10 +1040,10 @@ async function loadOverview() {
     totalFavs = favs.length;
     favs.forEach(function(f) { favsByListing[f.listing_id] = (favsByListing[f.listing_id] || 0) + 1; });
 
-    var r4 = await fetch(SB_URL + "/rest/v1/messages?select=listing_id,read&listing_id=in.(" + ids + ")", { headers: h });
+    var r4 = await fetch(SB_URL + "/rest/v1/messages?select=listing_id&listing_id=in.(" + ids + ")", { headers: h });
     var msgs = await r4.json(); msgs = Array.isArray(msgs) ? msgs : [];
     totalMsgs = msgs.length;
-    unread = msgs.filter(function(m) { return !m.read; }).length;
+    unread = 0; // read tracking not yet implemented
     msgs.forEach(function(m) { msgsByListing[m.listing_id] = (msgsByListing[m.listing_id] || 0) + 1; });
   }
 
@@ -1127,17 +1129,15 @@ async function loadMessages() {
   if (!msgs.length) { el.innerHTML='<div class="empty-state"><i class="ti ti-message-off"></i><h3>Sem mensagens ainda</h3></div>'; return; }
   el.innerHTML = '<div class="message-list">' +
     msgs.map(function(m){
-      return '<div class="message-card '+(m.read?"":"unread")+'">' +
+      return '<div class="message-card">' +
         '<div class="message-meta">' +
           '<div><div class="message-from">Arrendatário</div><div class="message-listing">'+esc(map[m.listing_id]||"")+'</div></div>' +
           '<div class="message-date">'+new Date(m.created_at).toLocaleDateString("pt-PT")+'</div>' +
         '</div>' +
-        '<div class="message-body">'+esc(m.content)+'</div></div>';
+        '<div class="message-body">'+esc(m.message)+'</div></div>';
     }).join("") + '</div>';
   // mark as read
-  fetch(SB_URL+"/rest/v1/messages?listing_id=in.("+ids+")", {
-    method:"PATCH", headers:Object.assign({"Content-Type":"application/json"},h), body:'{"read":true}'
-  });
+  // mark as read - not yet implemented
 }
 
 async function loadFavsDash() {
@@ -1172,7 +1172,7 @@ async function loadSentMessages() {
           '<div><div class="message-from">'+esc(t)+'</div><div class="message-listing">'+esc(c)+'</div></div>' +
           '<div class="message-date">'+new Date(m.created_at).toLocaleDateString("pt-PT")+'</div>' +
         '</div>' +
-        '<div class="message-body">'+esc(m.content)+'</div></div>';
+        '<div class="message-body">'+esc(m.message)+'</div></div>';
     }).join("") + '</div>';
 }
 
@@ -1307,14 +1307,45 @@ async function submitListing() {
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────
-function showPage(name) {
+function showPage(name, id) {
   document.querySelectorAll(".page").forEach(function(p){ p.classList.remove("active"); });
   document.getElementById("page-"+name).classList.add("active");
   window.scrollTo(0,0);
-  if (name==="listings")  fetchListings();
-  if (name==="dashboard") showDashboard();
-  if (name==="post" && !currentUser) { showPage("listings"); openAuth("login"); }
+  // Update URL hash for shareable links
+  if (name === "listings")  { window.location.hash = ""; fetchListings(); }
+  if (name === "detail" && id) { window.location.hash = "listing/" + id; }
+  if (name === "dashboard") { window.location.hash = "dashboard"; showDashboard(); }
+  if (name === "post")      { window.location.hash = "post"; }
+  if (name === "post" && !currentUser) { showPage("listings"); openAuth("login"); }
 }
+
+// Handle hash on page load and back/forward
+function handleHash() {
+  var hash = window.location.hash.replace("#", "");
+  if (hash.indexOf("listing/") === 0) {
+    var id = hash.replace("listing/", "");
+    // Wait for listings to load then open detail
+    if (allListings.length) {
+      openDetail(id);
+    } else {
+      fetch(SB_URL + "/rest/v1/listings?select=*&id=eq." + id, {
+        headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON }
+      }).then(function(r){ return r.json(); }).then(function(data){
+        if (data && data.length) {
+          allListings = data;
+          openDetail(id);
+        }
+      });
+    }
+  } else if (hash === "dashboard") {
+    showPage("dashboard");
+  } else if (hash === "post") {
+    showPage("post");
+  } else {
+    showPage("listings");
+  }
+}
+window.addEventListener("hashchange", handleHash);
 
 // ── PROFILE MODAL ────────────────────────────────────────────────────────
 var pendingAvatarFile = null;
@@ -1428,7 +1459,7 @@ async function loadMessages() {
     var key = m.sender_id + "_" + m.listing_id;
     if (!threads[key]) threads[key] = { senderId: m.sender_id, listingId: m.listing_id, msgs: [], hasUnread: false };
     threads[key].msgs.push(m);
-    if (!m.read) threads[key].hasUnread = true;
+    // read tracking not yet implemented
   });
 
   var html = '<div class="thread-list">';
@@ -1442,7 +1473,7 @@ async function loadMessages() {
     html += '<div class="thread-listing"><i class="ti ti-home" style="font-size:11px"></i> ' + title + '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:6px"><div class="thread-date">' + d + '</div>';
     html += (t.hasUnread ? '<div class="thread-unread-dot"></div>' : '') + '</div></div>';
-    html += '<div class="thread-preview">' + esc(last.content) + '</div></div>';
+    html += '<div class="thread-preview">' + esc(last.message) + '</div></div>';
   });
   html += '</div>';
   el.innerHTML = html;
@@ -1461,9 +1492,7 @@ async function openThreadLandlord(senderId, listingId, listingTitle) {
   var h = { "apikey": SB_ANON, "Authorization": "Bearer " + tok };
   var r = await fetch(SB_URL + "/rest/v1/messages?select=*&listing_id=eq." + listingId + "&sender_id=eq." + senderId + "&order=created_at.asc", { headers: h });
   var msgs = await r.json(); msgs = Array.isArray(msgs) ? msgs : [];
-  fetch(SB_URL + "/rest/v1/messages?listing_id=eq." + listingId + "&sender_id=eq." + senderId, {
-    method: "PATCH", headers: Object.assign({ "Content-Type": "application/json" }, h), body: '{"read":true}'
-  });
+  // mark as read - not yet implemented
   renderConversation(el, msgs, listingId, senderId, listingTitle, "landlord");
 }
 
@@ -1499,7 +1528,7 @@ async function loadSentMessages() {
     html += '<div class="thread-header"><div><div class="thread-name">' + esc(l.title) + '</div>';
     html += '<div class="thread-listing"><i class="ti ti-map-pin" style="font-size:11px"></i> ' + esc(l.city || "") + '</div></div>';
     html += '<div class="thread-date">' + d + '</div></div>';
-    html += '<div class="thread-preview">' + (last ? esc(last.content) : "") + '</div></div>';
+    html += '<div class="thread-preview">' + (last ? esc(last.message) : "") + '</div></div>';
   });
   html += '</div>';
   el.innerHTML = html;
@@ -1532,7 +1561,7 @@ function renderConversation(el, msgs, listingId, otherId, listingTitle, role) {
     var isMine = m.sender_id === currentUser.id;
     var d = new Date(m.created_at).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" }) + " · " + new Date(m.created_at).toLocaleDateString("pt-PT");
     html += '<div class="conv-msg ' + (isMine ? "mine" : "theirs") + '">';
-    html += '<div class="conv-bubble">' + esc(m.content) + '</div>';
+    html += '<div class="conv-bubble">' + esc(m.message) + '</div>';
     html += '<div class="conv-time">' + d + '</div></div>';
   });
   html += '</div>';
@@ -1557,7 +1586,7 @@ async function sendReply(listingId, otherId, listingTitle, role) {
   var r = await fetch(SB_URL + "/rest/v1/messages", {
     method: "POST",
     headers: { "apikey": SB_ANON, "Authorization": "Bearer " + tok, "Content-Type": "application/json" },
-    body: JSON.stringify({ listing_id: listingId, sender_id: currentUser.id, receiver_id: otherId, content: content, read: false })
+    body: JSON.stringify({ listing_id: listingId, sender_id: currentUser.id, receiver_id: otherId, message: content })
   });
   if (r.ok) {
     input.value = "";
@@ -1567,6 +1596,19 @@ async function sendReply(listingId, otherId, listingTitle, role) {
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────
+function shareListingLink() {
+  var url = window.location.origin + window.location.pathname + "#listing/" + currentListing.id;
+  if (navigator.share) {
+    navigator.share({ title: currentListing.title, url: url });
+  } else {
+    navigator.clipboard.writeText(url).then(function() {
+      showToast("Link copiado!");
+    }).catch(function() {
+      prompt("Copia este link:", url);
+    });
+  }
+}
+
 function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function showToast(msg, err) {
   var t=document.getElementById("toast"); t.textContent=msg;
