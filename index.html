@@ -265,7 +265,7 @@
     .map-listing-price { font-size:15px; font-weight:700; color:var(--brand); }
     .map-listing-title { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:2px 0; }
     .map-listing-loc { font-size:12px; color:var(--muted); }
-    #main-map { flex:1; z-index:0; }
+    #main-map { height:100%; min-height:500px; z-index:0; }
     #detail-map { height:220px; border-radius:var(--radius-lg); margin-bottom:16px; z-index:0; border:1px solid var(--border); }
     .leaflet-popup-content-wrapper { border-radius:var(--radius-lg) !important; box-shadow:0 4px 16px rgba(0,0,0,0.15) !important; }
     .map-popup { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; min-width:180px; }
@@ -299,7 +299,7 @@
   </div>
   <div class="nav-actions" id="nav-actions">
     <button class="btn btn-sm" onclick="showPage('map')"><i class="ti ti-map"></i> Mapa</button>
-      <button class="btn btn-sm btn-outline" onclick="openAuth('login')">Entrar</button>
+    <button class="btn btn-sm btn-outline" onclick="openAuth('login')">Entrar</button>
     <button class="btn btn-sm btn-primary" onclick="openAuth('register')">Registar</button>
   </div>
 </nav>
@@ -438,7 +438,6 @@
 <!-- DETAIL PAGE -->
 <div id="page-detail" class="page">
   <div class="detail-back"><button class="btn btn-sm btn-outline" onclick="showPage('listings')"><i class="ti ti-arrow-left"></i> Voltar</button></div>
-  <div id="detail-map" style="display:none"></div>
   <div class="detail-gallery" id="detail-gallery"><i class="ti ti-home" style="font-size:72px"></i></div>
   <div class="detail-body">
     <div>
@@ -452,6 +451,10 @@
       <div class="detail-section">
         <h3>Características</h3>
         <div class="features-grid" id="detail-features"></div>
+      </div>
+      <div class="detail-section" id="detail-map-section" style="display:none">
+        <h3>Localização</h3>
+        <div id="detail-map" style="height:220px;border-radius:var(--radius-lg);border:1px solid var(--border)"></div>
       </div>
     </div>
     <div class="contact-card">
@@ -1730,6 +1733,7 @@ async function initMainMap() {
   if (mainMap) { mainMap.remove(); mainMap = null; }
 
   mainMap = L.map("main-map", { zoomControl: true }).setView([39.5, -8.0], 6);
+  setTimeout(function() { if (mainMap) mainMap.invalidateSize(); }, 100);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
     maxZoom: 19
@@ -1848,12 +1852,20 @@ async function initDetailMap(listing) {
     } catch(e) { console.warn("Geocoding failed:", e); }
   }
 
-  if (!lat || !lng) { el.style.display = "none"; return; }
+  if (!lat || !lng) { 
+    el.style.display = "none"; 
+    var s = document.getElementById("detail-map-section"); 
+    if (s) s.style.display = "none"; 
+    return; 
+  }
 
   el.style.display = "block";
+  var section = document.getElementById("detail-map-section");
+  if (section) section.style.display = "";
   if (detailMap) { detailMap.remove(); detailMap = null; }
 
   detailMap = L.map(el, { zoomControl: true, scrollWheelZoom: false }).setView([lat, lng], 15);
+  setTimeout(function() { if (detailMap) detailMap.invalidateSize(); }, 200);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors", maxZoom: 19
   }).addTo(detailMap);
