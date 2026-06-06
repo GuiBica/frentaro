@@ -1698,18 +1698,8 @@ function showToast(msg, err) {
 }
 </script>
 </body>
-</html// ── MAP ─────────────────────────────────────────────────────────────────────────────
+</html// ── MAP ──────────────────────────────────────────────────────────────────
 var mainMap = null, detailMap = null, mapMarkers = [], mapListings = [];
-
-var brandIcon = null;
-function getMarkerIcon(active) {
-  if (!window.L) return null;
-  return L.divIcon({
-    className: "",
-    html: '<div style="background:' + (active ? "#D85A30" : "#1D5C4A") + ';color:#fff;padding:4px 8px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:2px solid #fff">' + (active ? "&#x2605; " : "") + "€" + (active || "") + "</div>",
-    iconAnchor: [20, 16]
-  });
-}
 
 function getPriceIcon(price, active) {
   if (!window.L) return null;
@@ -1723,7 +1713,6 @@ function getPriceIcon(price, active) {
 async function initMainMap() {
   if (!window.L) { setTimeout(initMainMap, 200); return; }
 
-  // Fetch listings with coordinates
   var r = await fetch(SB_URL + "/rest/v1/listings?select=*&order=created_at.desc", {
     headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON }
   });
@@ -1731,70 +1720,91 @@ async function initMainMap() {
   mapListings = Array.isArray(data) ? data : [];
 
   if (mainMap) { mainMap.remove(); mainMap = null; }
-
   mainMap = L.map("main-map", { zoomControl: true }).setView([39.5, -8.0], 6);
-  setTimeout(function() { if (mainMap) mainMap.invalidateSize(); }, 100);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap contributors",
-    maxZoom: 19
+    attribution: "© OpenStreetMap contributors", maxZoom: 19
   }).addTo(mainMap);
+  setTimeout(function() { if (mainMap) mainMap.invalidateSize(); }, 100);
 
-  mapMarkers = [];
   renderMapListings(mapListings);
 }
 
 function renderMapListings(list) {
-  // Clear existing markers
-  mapMarkers.forEach(function(m) { mainMap.removeLayer(m); });
+  mapMarkers.forEach(function(m) { if (mainMap) mainMap.removeLayer(m.marker); });
   mapMarkers = [];
 
   var withCoords = list.filter(function(l) { return l.latitude && l.longitude; });
-  var html = "";
+  var sidebarEl = document.getElementById("map-listing-list");
+  sidebarEl.innerHTML = "";
 
   if (!withCoords.length) {
-    document.getElementById("map-listing-list").innerHTML =
-      '<div class="empty-state" style="padding:40px 16px"><i class="ti ti-map-pin-off"></i><h3>Sem coordenadas</h3><p>Os anuncios nao tem localizacao no mapa.</p></div>';
+    sidebarEl.innerHTML = '<div class="empty-state" style="padding:40px 16px"><i class="ti ti-map-pin-off"></i><h3>Sem resultados</h3><p>Nenhum anúncio com localização.</p></div>';
+    return;
   }
 
   withCoords.forEach(function(l) {
+    // Map marker
     var icon = getPriceIcon(l.price, false);
-    var marker = L.marker([l.latitude, l.longitude], { icon: icon }).addTo(mainMap);
+    var marker = L.marker([parseFloat(l.latitude), parseFloat(l.longitude)], { icon: icon }).addTo(mainMap);
 
-    var imgHtml = (l.images && l.images.length)
-      ? '<img src="' + l.images[0] + '" style="width:100%;height:80px;object-fit:cover;border-radius:6px;margin-bottom:8px">'
-      : "";
-    marker.bindPopup(
-      '<div class="map-popup">' + imgHtml +
-      '<div class="map-popup-price">€' + Number(l.price).toLocaleString("pt-PT") + '/mês</div>' +
-      '<div class="map-popup-title">' + esc(l.title) + '</div>' +
-      '<div style="font-size:12px;color:#6b7280;margin-bottom:6px">' + esc(l.city || "") + '</div>' +
-      '<button class="map-popup-btn" onclick="openDetailFromMap('' + l.id + '')">Ver anúncio</button>' +
-      '</div>',
-      { maxWidth: 220 }
-    );
-
+    // Popup using DOM (avoids quote hell)
+    var popup = document.createElement("div");
+    popup.className = "map-popup";
+    if (l.images && l.images.length) {
+      var img = document.createElement("img");
+      img.src = l.images[0];
+      img.style.cssText = "width:100%;height:80px;object-fit:cover;border-radius:6px;margin-bottom:8px";
+      popup.appendChild(img);
+    }
+    var priceDiv = document.createElement("div");
+    priceDiv.className = "map-popup-price";
+    priceDiv.textContent = "€" + Number(l.price).toLocaleString("pt-PT") + "/mês";
+    popup.appendChild(priceDiv);
+    var titleDiv = document.createElement("div");
+    titleDiv.className = "map-popup-title";
+    titleDiv.textContent = l.title || "";
+    popup.appendChild(titleDiv);
+    var cityDiv = document.createElement("div");
+    cityDiv.style.cssText = "font-size:12px;color:#6b7280;margin-bottom:6px";
+    cityDiv.textContent = l.city || "";
+    popup.appendChild(cityDiv);
+    var btn = document.createElement("button");
+    btn.className = "map-popup-btn";
+    btn.textContent = "Ver anúncio";
+    (function(listing) { btn.addEventListener("click", function() { openDetailFromMap(listing.id); }); }(l));
+    popup.appendChild(btn);
+    marker.bindPopup(popup, { maxWidth: 220 });
     marker.on("click", function() { highlightMapItem(l.id); });
     mapMarkers.push({ id: l.id, marker: marker });
 
-    // Sidebar item
-    var icon2 = ICO[l.property_type] || "ti-home";
-    var thumb = (l.images && l.images.length)
-      ? '<img src="' + l.images[0] + '" alt="">'
-      : '<i class="ti ' + icon2 + '"></i>';
-    html += '<div class="map-listing-item" id="mapitem-' + l.id + '" onclick="flyToListing('' + l.id + '')">' +
-      '<div class="map-listing-thumb">' + thumb + '</div>' +
-      '<div class="map-listing-info">' +
-        '<div class="map-listing-price">€' + Number(l.price).toLocaleString("pt-PT") + '<span style="font-size:11px;font-weight:400;color:#6b7280">/mês</span></div>' +
-        '<div class="map-listing-title">' + esc(l.title) + '</div>' +
-        '<div class="map-listing-loc"><i class="ti ti-map-pin" style="font-size:11px"></i> ' + esc(l.city || "") + '</div>' +
-      '</div></div>';
+    // Sidebar item using DOM
+    var item = document.createElement("div");
+    item.className = "map-listing-item";
+    item.id = "mapitem-" + l.id;
+    var thumb = document.createElement("div");
+    thumb.className = "map-listing-thumb";
+    if (l.images && l.images.length) {
+      var timg = document.createElement("img");
+      timg.src = l.images[0]; timg.alt = "";
+      thumb.appendChild(timg);
+    } else {
+      var ico = document.createElement("i");
+      ico.className = "ti " + (ICO[l.property_type] || "ti-home");
+      thumb.appendChild(ico);
+    }
+    item.appendChild(thumb);
+    var info = document.createElement("div");
+    info.className = "map-listing-info";
+    info.innerHTML = '<div class="map-listing-price">€' + Number(l.price).toLocaleString("pt-PT") + '<span style="font-size:11px;font-weight:400;color:#6b7280">/mês</span></div>' +
+      '<div class="map-listing-title">' + esc(l.title) + '</div>' +
+      '<div class="map-listing-loc"><i class="ti ti-map-pin" style="font-size:11px"></i> ' + esc(l.city || "") + '</div>';
+    item.appendChild(info);
+    (function(listing) { item.addEventListener("click", function() { flyToListing(listing.id); }); }(l));
+    sidebarEl.appendChild(item);
   });
 
-  document.getElementById("map-listing-list").innerHTML = html || '<div style="padding:16px;color:#6b7280;font-size:14px">Nenhum resultado.</div>';
-
-  // Fit map to markers
   if (withCoords.length) {
-    var bounds = L.latLngBounds(withCoords.map(function(l) { return [l.latitude, l.longitude]; }));
+    var bounds = L.latLngBounds(withCoords.map(function(l) { return [parseFloat(l.latitude), parseFloat(l.longitude)]; }));
     mainMap.fitBounds(bounds, { padding: [40, 40] });
   }
 }
@@ -1802,9 +1812,9 @@ function renderMapListings(list) {
 function flyToListing(id) {
   var l = mapListings.find(function(x) { return x.id === id; });
   if (!l || !l.latitude) return;
-  mainMap.flyTo([l.latitude, l.longitude], 15, { duration: 0.8 });
-  var markerObj = mapMarkers.find(function(m) { return m.id === id; });
-  if (markerObj) { setTimeout(function() { markerObj.marker.openPopup(); }, 900); }
+  mainMap.flyTo([parseFloat(l.latitude), parseFloat(l.longitude)], 15, { duration: 0.8 });
+  var mo = mapMarkers.find(function(m) { return m.id === id; });
+  if (mo) setTimeout(function() { mo.marker.openPopup(); }, 900);
   highlightMapItem(id);
 }
 
@@ -1815,9 +1825,7 @@ function highlightMapItem(id) {
 }
 
 function openDetailFromMap(id) {
-  // Close popup and go to detail
   if (mainMap) mainMap.closePopup();
-  // Load listing into allListings if not there
   var l = mapListings.find(function(x) { return x.id === id; });
   if (l) {
     if (!allListings.find(function(x) { return x.id === id; })) allListings.push(l);
@@ -1833,14 +1841,14 @@ function filterMapListings() {
   renderMapListings(filtered);
 }
 
-// Detail map - shown in listing detail page
 async function initDetailMap(listing) {
   var el = document.getElementById("detail-map");
+  var section = document.getElementById("detail-map-section");
   if (!el || !window.L) return;
 
-  var lat = listing.latitude, lng = listing.longitude;
+  var lat = listing.latitude ? parseFloat(listing.latitude) : null;
+  var lng = listing.longitude ? parseFloat(listing.longitude) : null;
 
-  // If no coords, try geocoding the address
   if (!lat || !lng) {
     var query = [listing.address, listing.city, "Portugal"].filter(Boolean).join(", ");
     try {
@@ -1849,38 +1857,31 @@ async function initDetailMap(listing) {
       });
       var geo = await r.json();
       if (geo && geo.length) { lat = parseFloat(geo[0].lat); lng = parseFloat(geo[0].lon); }
-    } catch(e) { console.warn("Geocoding failed:", e); }
+    } catch(e) {}
   }
 
-  if (!lat || !lng) { 
-    el.style.display = "none"; 
-    var s = document.getElementById("detail-map-section"); 
-    if (s) s.style.display = "none"; 
-    return; 
+  if (!lat || !lng) {
+    if (section) section.style.display = "none";
+    el.style.display = "none";
+    return;
   }
 
   el.style.display = "block";
-  var section = document.getElementById("detail-map-section");
   if (section) section.style.display = "";
   if (detailMap) { detailMap.remove(); detailMap = null; }
 
   detailMap = L.map(el, { zoomControl: true, scrollWheelZoom: false }).setView([lat, lng], 15);
-  setTimeout(function() { if (detailMap) detailMap.invalidateSize(); }, 200);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap contributors", maxZoom: 19
+    attribution: "© OpenStreetMap contributors", maxZoom: 19
   }).addTo(detailMap);
+  setTimeout(function() { if (detailMap) detailMap.invalidateSize(); }, 200);
 
   var markerIcon = L.divIcon({
     className: "",
-    html: '<div style="background:#1D5C4A;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:3px solid #fff"><i class="ti ti-home" style="font-size:16px"></i></div>',
+    html: '<div style="background:#1D5C4A;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:3px solid #fff;font-size:16px"><i class="ti ti-home"></i></div>',
     iconAnchor: [18, 18]
   });
-
-  L.marker([lat, lng], { icon: markerIcon }).addTo(detailMap)
-    .bindPopup('<div style="font-size:13px;font-weight:600">' + esc(listing.city || "") + '</div>')
-    .openPopup();
-
-  // Blur circle for privacy (show neighbourhood, not exact address)
+  L.marker([lat, lng], { icon: markerIcon }).addTo(detailMap).bindPopup(listing.city || "").openPopup();
   L.circle([lat, lng], { radius: 150, color: "#1D5C4A", fillColor: "#1D5C4A", fillOpacity: 0.1, weight: 1 }).addTo(detailMap);
 }
 
