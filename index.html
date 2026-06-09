@@ -85,7 +85,7 @@
     .toggle-btn:hover:not(.active) { background:var(--surface); color:var(--text); }
     /* INLINE MAP */
     .listings-map-container { display:none; }
-    .listings-map-container.active { display:flex; flex-direction:row; height:calc(100vh - 170px); width:100%; }
+    .listings-map-container.active { display:flex; flex-direction:row; height:calc(100vh - 170px); }
     #listings-map { flex:1; min-width:0; height:100%; }
     .map-listings-panel { width:340px; min-width:340px; background:var(--surface); border-left:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; height:100%; }
     .map-listings-panel-header { padding:14px 16px; border-bottom:1px solid var(--border); font-size:13px; font-weight:600; color:var(--text); flex-shrink:0; background:var(--bg); }
@@ -2152,24 +2152,15 @@ function setView(view) {
   document.getElementById("btn-list").classList.toggle("active", view === "list");
   document.getElementById("btn-map").classList.toggle("active", view === "map");
 
-  var listingsLayout = document.querySelector(".listings-layout");
-  var filterSidebar  = document.querySelector(".filter-sidebar");
-  var listingsResult = document.querySelector(".listings-results");
-  var mapContainer   = document.getElementById("listings-map-container");
-  var listContainer  = document.getElementById("listings-container");
+  var listContainer = document.getElementById("listings-container");
+  var mapContainer  = document.getElementById("listings-map-container");
 
   if (view === "map") {
-    // Hide sidebar + results, show full-width map
-    filterSidebar.style.display  = "none";
-    listContainer.style.display  = "none";
-    listingsLayout.style.gridTemplateColumns = "1fr";
+    listContainer.style.display = "none";
     mapContainer.classList.add("active");
     setTimeout(function() { initInlineMap(getCurrentFiltered()); }, 50);
   } else {
-    // Restore list view
-    filterSidebar.style.display  = "";
-    listContainer.style.display  = "";
-    listingsLayout.style.gridTemplateColumns = "";
+    listContainer.style.display = "";
     mapContainer.classList.remove("active");
   }
 }
@@ -2178,7 +2169,7 @@ function initInlineMap(listings) {
   if (!window.L) { setTimeout(function(){ initInlineMap(listings); }, 200); return; }
   if (!listingsInlineMap) {
     listingsInlineMap = L.map("listings-map", { zoomControl: true }).setView([39.5, -8.0], 6);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
       attribution: "© OpenStreetMap contributors", maxZoom: 19
     }).addTo(listingsInlineMap);
   }
@@ -2205,7 +2196,7 @@ function updateInlineMap(listings) {
   withCoords.forEach(function(l) {
     var icon = L.divIcon({
       className: "",
-      html: '<div style="background:#1D5C4A;color:#fff;padding:5px 9px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:2px solid #fff;cursor:pointer">€' + Number(l.price).toLocaleString("pt-PT") + '</div>',
+      html: '<div style="background:#1D5C4A;color:#fff;padding:6px 12px;border-radius:20px;font-size:13px;font-weight:800;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,0.4);border:3px solid #fff;cursor:pointer">€' + Number(l.price).toLocaleString("pt-PT") + '</div>',
       iconAnchor: [30, 16]
     });
     var marker = L.marker([parseFloat(l.latitude), parseFloat(l.longitude)], { icon: icon }).addTo(listingsInlineMap);
@@ -2300,7 +2291,7 @@ async function initMainMap() {
 
   if (mainMap) { mainMap.remove(); mainMap = null; }
   mainMap = L.map("main-map", { zoomControl: true }).setView([39.5, -8.0], 6);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
     attribution: "© OpenStreetMap contributors", maxZoom: 19
   }).addTo(mainMap);
   setTimeout(function() { if (mainMap) mainMap.invalidateSize(); }, 100);
@@ -2450,7 +2441,7 @@ async function initDetailMap(listing) {
   if (detailMap) { detailMap.remove(); detailMap = null; }
 
   detailMap = L.map(el, { zoomControl: true, scrollWheelZoom: false }).setView([lat, lng], 15);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
     attribution: "© OpenStreetMap contributors", maxZoom: 19
   }).addTo(detailMap);
   setTimeout(function() { if (detailMap) detailMap.invalidateSize(); }, 200);
