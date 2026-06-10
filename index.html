@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- homie v3.1 -->
+<!-- frentaro v3.1 -->
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>homie – Arrendamentos em Portugal</title>
+  <title>frentaro – Arrendamentos em Portugal</title>
   <!-- build: v5 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -347,7 +347,7 @@
 
 <nav class="nav">
   <div class="logo" onclick="showPage('listings')">
-    <i class="ti ti-building"></i>homie
+    <i class="ti ti-building"></i>frentaro
   </div>
   <div class="nav-actions" id="nav-actions">
     <button class="btn btn-sm" onclick="showPage('map')"><i class="ti ti-map"></i> Mapa</button>
@@ -1568,7 +1568,7 @@ async function submitListing() {
   try {
     var geoQuery = [g("f-address"), g("f-city"), "Portugal"].filter(Boolean).join(", ");
     var geoR = await fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(geoQuery) + "&limit=1", {
-      headers: { "User-Agent": "homie-pt/1.0" }
+      headers: { "User-Agent": "frentaro-pt/1.0" }
     });
     var geoData = await geoR.json();
     if (geoData && geoData.length) { lat = parseFloat(geoData[0].lat); lng = parseFloat(geoData[0].lon); }
@@ -2339,7 +2339,7 @@ async function initDetailMap(listing) {
     var query = [listing.address, listing.city, "Portugal"].filter(Boolean).join(", ");
     try {
       var r = await fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(query) + "&limit=1", {
-        headers: { "User-Agent": "homie-pt/1.0" }
+        headers: { "User-Agent": "frentaro-pt/1.0" }
       });
       var geo = await r.json();
       if (geo && geo.length) { lat = parseFloat(geo[0].lat); lng = parseFloat(geo[0].lon); }
