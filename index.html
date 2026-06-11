@@ -1040,7 +1040,46 @@ async function handleSession(session) {
   if (currentProfile && currentProfile.role === "tenant") loadFavourites();
 }
 
-// ── FETCH LISTINGS ────────────────────────────────────────────────────────
+// ── GEOCODE HELPER ────────────────────────────────────────────────────────
+async function geocodeAddress(address, city, postal) {
+  // Clean address: remove floor/fraction info (1o andar, 2º dto, r/c, etc.)
+  var cleanAddress = (address || "")
+    .replace(/,?\s*\d+[oaº°]?\s*(andar|piso|dto|esq|esquerdo|direito|frente|tras|r\/c|cave|apart\.?|apto\.?)\b.*/i, "")
+    .replace(/,?\s*(rés.do.chão|r\.?c\.?)\b.*/i, "")
+    .trim();
+
+  var strategies = [];
+
+  // Strategy 1: clean address + city + postal
+  if (cleanAddress && city && postal)
+    strategies.push([cleanAddress, city, postal, "Portugal"].join(", "));
+  // Strategy 2: clean address + city
+  if (cleanAddress && city)
+    strategies.push([cleanAddress, city, "Portugal"].join(", "));
+  // Strategy 3: postal + city (most reliable fallback)
+  if (postal && city)
+    strategies.push([postal, city, "Portugal"].join(", "));
+  // Strategy 4: city only
+  if (city)
+    strategies.push([city, "Portugal"].join(", "));
+
+  for (var i = 0; i < strategies.length; i++) {
+    try {
+      var r = await fetch(
+        "https://nominatim.openstreetmap.org/search?format=json&q=" +
+        encodeURIComponent(strategies[i]) + "&limit=1&countrycodes=pt&addressdetails=1",
+        { headers: { "User-Agent": "frentaro-pt/1.0" } }
+      );
+      var data = await r.json();
+      if (data && data.length) {
+        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      }
+    } catch(e) { console.warn("Geocode strategy", i, "failed:", e); }
+    // Respect Nominatim rate limit between attempts
+    if (i < strategies.length - 1) await new Promise(function(res){ setTimeout(res, 300); });
+  }
+  return null;
+}
 async function fetchListings() {
   document.getElementById("listings-container").innerHTML =
     '<div class="loading-state"><i class="ti ti-loader-2" style="font-size:32px;display:block;margin-bottom:12px"></i>A carregar anúncios...</div>';
@@ -1071,32 +1110,13 @@ async function geocodeMissingListings(listings) {
   for (var i = 0; i < missing.length; i++) {
     var l = missing[i];
     try {
-      // Build query from most to least specific
-      var parts = [l.address, l.city, l.postal_code, "Portugal"].filter(Boolean);
-      var query = parts.join(", ");
-      var geoR = await fetch(
-        "https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(query) + "&limit=1&countrycodes=pt",
-        { headers: { "User-Agent": "frentaro-pt/1.0" } }
-      );
-      var geoData = await geoR.json();
-
-      // Fallback: try city + postal only if full address fails
-      if ((!geoData || !geoData.length) && l.city) {
-        var fallbackQuery = [l.city, l.postal_code, "Portugal"].filter(Boolean).join(", ");
-        var geoR2 = await fetch(
-          "https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(fallbackQuery) + "&limit=1&countrycodes=pt",
-          { headers: { "User-Agent": "frentaro-pt/1.0" } }
-        );
-        geoData = await geoR2.json();
-      }
-
-      if (geoData && geoData.length) {
-        var lat = parseFloat(geoData[0].lat);
-        var lng = parseFloat(geoData[0].lon);
+      var geo = await geocodeAddress(l.address, l.city, l.postal_code);
+      if (geo) {
+        var lat = geo.lat, lng = geo.lng;
         // Update in memory
         var idx = allListings.findIndex(function(x){ return x.id === l.id; });
         if (idx !== -1) { allListings[idx].latitude = lat; allListings[idx].longitude = lng; }
-        // Persist to Supabase (best-effort, no auth needed since it's the listing owner's data)
+        // Persist to Supabase
         fetch(SB_URL + "/rest/v1/listings?id=eq." + l.id, {
           method: "PATCH",
           headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON, "Content-Type": "application/json" },
@@ -1851,12 +1871,8 @@ async function submitListing() {
 
   var lat = null, lng = null;
   try {
-    var geoQuery = [g("f-address"), g("f-city"), "Portugal"].filter(Boolean).join(", ");
-    var geoR = await fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(geoQuery) + "&limit=1", {
-      headers: { "User-Agent": "frentaro-pt/1.0" }
-    });
-    var geoData = await geoR.json();
-    if (geoData && geoData.length) { lat = parseFloat(geoData[0].lat); lng = parseFloat(geoData[0].lon); }
+    var geo = await geocodeAddress(g("f-address"), g("f-city"), g("f-postal"));
+    if (geo) { lat = geo.lat; lng = geo.lng; }
   } catch(e) { console.warn("Geocoding failed:", e); }
 
   var body = {
