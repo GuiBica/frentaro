@@ -2693,6 +2693,136 @@ async function initDetailMap(listing) {
   L.circle([lat, lng], { radius: 150, color: "#1D5C4A", fillColor: "#1D5C4A", fillOpacity: 0.1, weight: 1 }).addTo(detailMap);
 }
 
+// ── ADDRESS AUTOCOMPLETE ──────────────────────────────────────────────────
+var addressDebounceTimer = null;
+var addressSuggestionFocus = -1;
+
+function onAddressInput(val) {
+  // Clear previously selected coords since user is typing again
+  document.getElementById("f-lat").value = "";
+  document.getElementById("f-lng").value = "";
+
+  clearTimeout(addressDebounceTimer);
+  var box = document.getElementById("f-address-suggestions");
+  if (!val || val.length < 4) { box.style.display = "none"; return; }
+
+  box.innerHTML = '<div class="address-loading"><i class="ti ti-loader-2"></i> A procurar...</div>';
+  box.style.display = "block";
+
+  addressDebounceTimer = setTimeout(function() { fetchAddressSuggestions(val); }, 400);
+}
+
+async function fetchAddressSuggestions(query) {
+  var box = document.getElementById("f-address-suggestions");
+  var city = document.getElementById("f-city").value.trim();
+  var postal = document.getElementById("f-postal").value.trim();
+
+  // Build search query — include city and postal if filled in for better results
+  var searchQuery = [query, city, postal, "Portugal"].filter(Boolean).join(", ");
+
+  try {
+    var r = await fetch(
+      "https://nominatim.openstreetmap.org/search?format=json&q=" +
+      encodeURIComponent(searchQuery) + "&limit=5&countrycodes=pt&addressdetails=1",
+      { headers: { "User-Agent": "frentaro-pt/1.0" } }
+    );
+    var results = await r.json();
+
+    if (!results || !results.length) {
+      box.innerHTML = '<div class="address-loading" style="color:var(--muted)"><i class="ti ti-map-pin-off"></i> Sem resultados. Tente outra morada.</div>';
+      return;
+    }
+
+    addressSuggestionFocus = -1;
+    box.innerHTML = "";
+    results.forEach(function(item, i) {
+      var addr = item.address || {};
+      // Build a clean display: street + number as main, rest as sub
+      var road = addr.road || addr.pedestrian || addr.footway || "";
+      var houseNum = addr.house_number || "";
+      var main = [houseNum ? road + " " + houseNum : road].filter(Boolean).join("") || item.display_name.split(",")[0];
+      var sub = [addr.suburb || addr.neighbourhood, addr.city || addr.town || addr.village, addr.postcode].filter(Boolean).join(", ");
+
+      var div = document.createElement("div");
+      div.className = "address-suggestion";
+      div.innerHTML =
+        '<i class="ti ti-map-pin"></i>' +
+        '<div><div class="address-suggestion-main">' + esc(main) + '</div>' +
+        '<div class="address-suggestion-sub">' + esc(sub) + '</div></div>';
+
+      (function(result, mainText, subText) {
+        div.addEventListener("mousedown", function(e) {
+          e.preventDefault(); // prevent blur before click
+          selectAddressSuggestion(result, mainText, subText);
+        });
+      }(item, main, sub));
+
+      box.appendChild(div);
+    });
+
+  } catch(e) {
+    box.innerHTML = '<div class="address-loading" style="color:#dc2626"><i class="ti ti-wifi-off"></i> Erro ao procurar morada.</div>';
+  }
+}
+
+function selectAddressSuggestion(result, main, sub) {
+  var addr = result.address || {};
+  // Fill address field with clean street + number
+  var road = addr.road || addr.pedestrian || addr.footway || main;
+  var houseNum = addr.house_number || "";
+  document.getElementById("f-address").value = houseNum ? road + " " + houseNum : road;
+
+  // Auto-fill city if empty
+  var cityEl = document.getElementById("f-city");
+  if (!cityEl.value.trim()) {
+    cityEl.value = addr.city || addr.town || addr.village || addr.county || "";
+  }
+  // Auto-fill postal if empty
+  var postalEl = document.getElementById("f-postal");
+  if (!postalEl.value.trim() && addr.postcode) {
+    postalEl.value = addr.postcode;
+  }
+
+  // Save coordinates
+  document.getElementById("f-lat").value = result.lat;
+  document.getElementById("f-lng").value = result.lon;
+
+  // Hide suggestions
+  document.getElementById("f-address-suggestions").style.display = "none";
+}
+
+// Keyboard navigation for suggestions
+document.addEventListener("keydown", function(e) {
+  var box = document.getElementById("f-address-suggestions");
+  if (!box || box.style.display === "none") return;
+  var items = box.querySelectorAll(".address-suggestion");
+  if (!items.length) return;
+
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    addressSuggestionFocus = Math.min(addressSuggestionFocus + 1, items.length - 1);
+    items.forEach(function(el, i){ el.classList.toggle("focused", i === addressSuggestionFocus); });
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    addressSuggestionFocus = Math.max(addressSuggestionFocus - 1, 0);
+    items.forEach(function(el, i){ el.classList.toggle("focused", i === addressSuggestionFocus); });
+  } else if (e.key === "Enter" && addressSuggestionFocus >= 0) {
+    e.preventDefault();
+    items[addressSuggestionFocus].dispatchEvent(new MouseEvent("mousedown"));
+  } else if (e.key === "Escape") {
+    box.style.display = "none";
+  }
+});
+
+// Close suggestions when clicking outside
+document.addEventListener("click", function(e) {
+  var wrap = document.querySelector(".address-wrap");
+  if (wrap && !wrap.contains(e.target)) {
+    var box = document.getElementById("f-address-suggestions");
+    if (box) box.style.display = "none";
+  }
+});
+
 // ── FAQ TOGGLE ────────────────────────────────────────────────────────────
 function toggleFaq(el) {
   var item = el.closest(".faq-item");
