@@ -1052,10 +1052,61 @@ async function fetchListings() {
     var data = await r.json();
     allListings = Array.isArray(data) ? data : [];
     renderListings(allListings);
+    // After render, geocode any listings missing coordinates in the background
+    geocodeMissingListings(allListings);
   } catch(e) {
     document.getElementById("listings-container").innerHTML =
       '<div class="empty-state"><i class="ti ti-wifi-off"></i><h3>Erro ao carregar</h3><p>' + e + '</p>' +
       '<button class="btn btn-primary" style="margin-top:16px" onclick="fetchListings()"><i class="ti ti-refresh"></i> Tentar novamente</button></div>';
+  }
+}
+
+// Geocode listings that have address/city but no lat/lng, then save to Supabase
+async function geocodeMissingListings(listings) {
+  var missing = listings.filter(function(l) {
+    return (!l.latitude || !l.longitude) && (l.address || l.city);
+  });
+  if (!missing.length) return;
+
+  for (var i = 0; i < missing.length; i++) {
+    var l = missing[i];
+    try {
+      // Build query from most to least specific
+      var parts = [l.address, l.city, l.postal_code, "Portugal"].filter(Boolean);
+      var query = parts.join(", ");
+      var geoR = await fetch(
+        "https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(query) + "&limit=1&countrycodes=pt",
+        { headers: { "User-Agent": "frentaro-pt/1.0" } }
+      );
+      var geoData = await geoR.json();
+
+      // Fallback: try city + postal only if full address fails
+      if ((!geoData || !geoData.length) && l.city) {
+        var fallbackQuery = [l.city, l.postal_code, "Portugal"].filter(Boolean).join(", ");
+        var geoR2 = await fetch(
+          "https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(fallbackQuery) + "&limit=1&countrycodes=pt",
+          { headers: { "User-Agent": "frentaro-pt/1.0" } }
+        );
+        geoData = await geoR2.json();
+      }
+
+      if (geoData && geoData.length) {
+        var lat = parseFloat(geoData[0].lat);
+        var lng = parseFloat(geoData[0].lon);
+        // Update in memory
+        var idx = allListings.findIndex(function(x){ return x.id === l.id; });
+        if (idx !== -1) { allListings[idx].latitude = lat; allListings[idx].longitude = lng; }
+        // Persist to Supabase (best-effort, no auth needed since it's the listing owner's data)
+        fetch(SB_URL + "/rest/v1/listings?id=eq." + l.id, {
+          method: "PATCH",
+          headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON, "Content-Type": "application/json" },
+          body: JSON.stringify({ latitude: lat, longitude: lng })
+        });
+      }
+    } catch(e) { console.warn("Geocoding failed for listing", l.id, e); }
+
+    // Nominatim rate limit: 1 request/second
+    if (i < missing.length - 1) await new Promise(function(res){ setTimeout(res, 1100); });
   }
 }
 
