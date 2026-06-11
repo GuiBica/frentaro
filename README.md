@@ -87,7 +87,7 @@ O projecto faz deploy automático via Vercel a cada push para `main`.
 
 ```bash
 # Clonar
-git clone https://github.com/[teu-user]/frentaro.git
+git clone https://github.com/[guibica]/frentaro.git
 cd frentaro
 
 # Não há dependências — abrir directamente no browser
