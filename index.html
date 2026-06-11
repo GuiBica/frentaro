@@ -921,7 +921,7 @@
     <div class="mfg"><label>Mensagem ao proprietário</label><textarea id="apply-message" placeholder="Apresente-se brevemente e diga porquê é um bom inquilino..." style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:inherit;resize:vertical;min-height:90px;outline:none"></textarea></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px">
       <button class="btn" onclick="closeApplyModal()">Cancelar</button>
-      <button class="btn btn-primary" id="apply-submit-btn" onclick="submitApplication()"><i class="ti ti-send"></i> Enviar candidatura</button>
+      <button class="btn btn-primary" id="apply-submit-btn"><i class="ti ti-send"></i> Enviar candidatura</button>
     </div>
   </div>
 </div>
@@ -1046,6 +1046,8 @@ var REGIONS = {
 window.addEventListener("DOMContentLoaded", function() {
   fetchListings();
   setTimeout(handleHash, 300);
+  document.getElementById("apply-modal").addEventListener("click", function(e){ if(e.target===this) closeApplyModal(); });
+  document.getElementById("apply-submit-btn").addEventListener("click", submitApplication);
   sb.auth.getSession().then(function(r) {
     if (r.data && r.data.session) handleSession(r.data.session);
   });
@@ -2865,13 +2867,13 @@ var EMPLOYMENT_LABELS = {
 function openApplyModal() {
   if (!currentUser) { openAuth("register"); return; }
   if (!currentListing) return;
-  // Pre-fill name and email from profile
   document.getElementById("apply-name").value  = (currentProfile && currentProfile.full_name) || "";
   document.getElementById("apply-email").value = currentUser.email || "";
   document.getElementById("apply-employment").value = "";
   document.getElementById("apply-salary").value = "";
   document.getElementById("apply-message").value = "";
   document.getElementById("apply-msg").style.display = "none";
+  document.getElementById("apply-submit-btn").style.display = "";
   document.getElementById("apply-listing-title").textContent = currentListing.title || "";
   document.getElementById("apply-modal").classList.remove("hidden");
 }
@@ -2879,10 +2881,6 @@ function openApplyModal() {
 function closeApplyModal() {
   document.getElementById("apply-modal").classList.add("hidden");
 }
-
-document.getElementById("apply-modal").addEventListener("click", function(e) {
-  if (e.target === this) closeApplyModal();
-});
 
 async function submitApplication() {
   var name       = document.getElementById("apply-name").value.trim();
@@ -2916,7 +2914,7 @@ async function submitApplication() {
       },
       body: JSON.stringify({
         listing_id:  currentListing.id,
-        landlord_id: currentListing.user_id,
+        landlord_id: currentListing.user_id || null,
         tenant_id:   currentUser.id,
         name:        name,
         email:       email,
