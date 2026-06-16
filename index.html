@@ -2829,86 +2829,65 @@ function onAddressInput(val) {
 async function _acFetch(val) {
   var box = document.getElementById("f-address-suggestions");
   try {
-    // Photon — open geocoder, no API key, no CORS issues
-    // lat/lon bias centres results on Portugal; osm_tag filters to relevant types
-    var url = "https://photon.komoot.io/api/?q=" + encodeURIComponent(val) +
-      "&limit=10&lang=pt&lat=39.5&lon=-8.0&zoom=12" +
-      "&osm_tag=place:city&osm_tag=place:town&osm_tag=place:village" +
-      "&osm_tag=highway:residential&osm_tag=highway:primary&osm_tag=highway:secondary" +
-      "&osm_tag=highway:tertiary&osm_tag=highway:living_street";
-
-    // Simpler URL without osm_tag filter which can be too restrictive
-    url = "https://photon.komoot.io/api/?q=" + encodeURIComponent(val) +
-      "&limit=15&lang=pt&lat=39.5&lon=-8.0";
+    var GEOAPIFY_KEY = "YOUR_GEOAPIFY_KEY";
+    var url = "https://api.geoapify.com/v1/geocode/autocomplete" +
+      "?text=" + encodeURIComponent(val) +
+      "&filter=countrycode:pt" +
+      "&bias=countrycode:pt" +
+      "&limit=5" +
+      "&lang=pt" +
+      "&apiKey=" + GEOAPIFY_KEY;
 
     var r = await fetch(url);
     if (!r.ok) throw new Error("HTTP " + r.status);
     var data = await r.json();
     var features = (data && data.features) ? data.features : [];
 
-    // Filter strictly to Portugal by countrycode
-    features = features.filter(function(f) {
-      return (f.properties || {}).countrycode === "PT";
-    }).slice(0, 5);
-
     if (!features.length) {
-      box.innerHTML = '<div class="address-loading"><i class="ti ti-map-pin-off"></i> Sem resultados. Tente com cidade incluída (ex: "Rua X, Lisboa").</div>';
+      box.innerHTML = '<div class="address-loading"><i class="ti ti-map-pin-off"></i> Sem resultados. Tente outra morada.</div>';
       return;
     }
 
     box.innerHTML = "";
     features.forEach(function(f) {
-      var p      = f.properties || {};
-      var coords = f.geometry && f.geometry.coordinates; // [lng, lat]
+      var p   = f.properties || {};
+      var lat = p.lat;
+      var lon = p.lon;
 
-      var street = p.street || "";
-      var num    = p.housenumber || "";
-      var name   = p.name || "";
-      // Main line: prefer street+number, fallback to name
-      var main = street ? (street + (num ? " " + num : "")) : name;
-      if (!main) main = p.district || p.suburb || "";
-
+      var street   = p.street || "";
+      var num      = p.housenumber || "";
+      var main     = street ? (street + (num ? " " + num : "")) : (p.name || p.address_line1 || "");
       var city     = p.city || p.town || p.village || p.county || "";
       var postcode = p.postcode || "";
       var sub      = [city, postcode].filter(Boolean).join(", ");
-
-      // Skip results with no meaningful label
-      if (!main && !sub) return;
 
       var div = document.createElement("div");
       div.className = "address-suggestion";
       div.innerHTML =
         '<i class="ti ti-map-pin"></i>' +
         '<div>' +
-          '<div class="address-suggestion-main">' + esc(main || sub) + '</div>' +
-          (sub && main !== sub ? '<div class="address-suggestion-sub">' + esc(sub) + '</div>' : '') +
+          '<div class="address-suggestion-main">' + esc(main || p.formatted || "") + '</div>' +
+          (sub ? '<div class="address-suggestion-sub">' + esc(sub) + '</div>' : '') +
         '</div>';
 
       div.addEventListener("mousedown", function(e) {
         e.preventDefault();
-        var lat = coords ? coords[1] : null;
-        var lon = coords ? coords[0] : null;
-        document.getElementById("f-address").value = main || name || "";
+        document.getElementById("f-address").value = main || "";
         document.getElementById("f-city").value    = city;
         if (postcode) document.getElementById("f-postal").value = postcode;
         document.getElementById("f-lat").value = lat || "";
         document.getElementById("f-lng").value = lon || "";
         box.style.display = "none";
         box.innerHTML = "";
-        if (lat && lon) showLocationPreview(lat, lon, (main || name) + (city ? ", " + city : ""));
+        if (lat && lon) showLocationPreview(parseFloat(lat), parseFloat(lon), (main || "") + (city ? ", " + city : ""));
       });
 
       box.appendChild(div);
     });
 
-    // If after filtering we have 0 items (all non-PT), show message
-    if (!box.querySelector(".address-suggestion")) {
-      box.innerHTML = '<div class="address-loading"><i class="ti ti-map-pin-off"></i> Sem resultados em Portugal. Tente incluir a cidade.</div>';
-    }
-
   } catch(e) {
     console.error("Autocomplete error:", e);
-    box.innerHTML = '<div class="address-loading"><i class="ti ti-map-pin-off"></i> Sem resultados. Tente incluir a cidade (ex: "Rua X, Lisboa").</div>';
+    box.innerHTML = '<div class="address-loading"><i class="ti ti-wifi-off"></i> Erro de ligação.</div>';
   }
 }
 
