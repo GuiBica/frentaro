@@ -681,7 +681,21 @@
         <div class="fg"><label>Cidade *</label><input type="text" id="f-city" placeholder="Lisboa"></div>
         <div class="fg"><label>Código postal</label><input type="text" id="f-postal" placeholder="1200-110"></div>
       </div>
-      <div style="margin-top:4px;font-size:13px;color:var(--muted)"><i class="ti ti-info-circle"></i> A localização no mapa é preenchida automaticamente com base na morada e cidade.</div>
+      <!-- Location preview map — shown after selecting a suggestion -->
+      <div id="f-location-preview" style="display:none;margin-top:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:600;color:var(--brand);display:flex;align-items:center;gap:6px">
+            <i class="ti ti-map-pin-check"></i> Localização confirmada
+          </div>
+          <button type="button" class="btn-clear" style="font-size:12px;color:var(--muted)" onclick="clearLocationPreview()"><i class="ti ti-refresh"></i> Alterar</button>
+        </div>
+        <div id="f-location-map" style="height:180px;border-radius:var(--radius);border:2px solid var(--brand);overflow:hidden"></div>
+        <div id="f-location-text" style="font-size:12px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:4px"><i class="ti ti-info-circle"></i></div>
+      </div>
+      <!-- Warning shown if user tries to submit without selecting a suggestion -->
+      <div id="f-location-warning" style="display:none;margin-top:10px;font-size:13px;color:#B45309;background:#FFF8E1;border:1px solid #FDE68A;border-radius:var(--radius);padding:9px 12px;display:flex;align-items:center;gap:8px">
+        <i class="ti ti-alert-triangle"></i> Seleccione uma morada da lista para garantir a localização correcta no mapa.
+      </div>
     </div>
     <div class="form-section">
       <div class="section-title">Preço e disponibilidade</div>
@@ -1950,13 +1964,16 @@ async function submitListing() {
 
   var lat = document.getElementById("f-lat").value ? parseFloat(document.getElementById("f-lat").value) : null;
   var lng = document.getElementById("f-lng").value ? parseFloat(document.getElementById("f-lng").value) : null;
-  // Fallback geocode if user typed address without selecting a suggestion
+
+  // Warn if user didn't select from autocomplete
   if (!lat || !lng) {
-    try {
-      var geo = await geocodeAddress(g("f-address"), g("f-city"), g("f-postal"));
-      if (geo) { lat = geo.lat; lng = geo.lng; }
-    } catch(e) { console.warn("Geocoding failed:", e); }
+    var warn = document.getElementById("f-location-warning");
+    warn.style.display = "flex";
+    document.getElementById("f-address").focus();
+    document.getElementById("f-address").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
   }
+  document.getElementById("f-location-warning").style.display = "none";
 
   var body = {
     user_id:currentUser.id, title:g("f-title"), description:g("f-desc")||null,
@@ -2002,6 +2019,9 @@ async function submitListing() {
   document.getElementById("f-lat").value = "";
   document.getElementById("f-lng").value = "";
   document.getElementById("f-address-suggestions").style.display = "none";
+  document.getElementById("f-location-preview").style.display = "none";
+  document.getElementById("f-location-warning").style.display = "none";
+  if (_previewMap) { _previewMap.remove(); _previewMap = null; }
   btn.disabled=false; btn.innerHTML='<i class="ti ti-send"></i> Publicar anúncio';
   showToast("Anúncio publicado!");
   setTimeout(function(){ showPage("dashboard"); }, 1000);
@@ -2754,6 +2774,44 @@ async function initDetailMap(listing) {
   L.circle([lat, lng], { radius: 150, color: "#1D5C4A", fillColor: "#1D5C4A", fillOpacity: 0.1, weight: 1 }).addTo(detailMap);
 }
 
+// ── LOCATION PREVIEW MAP (post form) ─────────────────────────────────────
+var _previewMap = null;
+
+function showLocationPreview(lat, lng, label) {
+  var preview = document.getElementById("f-location-preview");
+  var textEl  = document.getElementById("f-location-text");
+  var warning = document.getElementById("f-location-warning");
+  preview.style.display = "block";
+  warning.style.display = "none";
+  textEl.innerHTML = '<i class="ti ti-map-pin"></i> ' + esc(label);
+
+  if (_previewMap) { _previewMap.remove(); _previewMap = null; }
+  if (!window.L) return;
+
+  _previewMap = L.map("f-location-map", { zoomControl: false, scrollWheelZoom: false, dragging: false }).setView([lat, lng], 16);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    attribution: "© OpenStreetMap", maxZoom: 19
+  }).addTo(_previewMap);
+  var icon = L.divIcon({
+    className: "",
+    html: '<div style="background:#1D5C4A;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:3px solid #fff;font-size:14px"><i class="ti ti-home"></i></div>',
+    iconAnchor: [16, 16]
+  });
+  L.marker([lat, lng], { icon: icon }).addTo(_previewMap);
+  setTimeout(function() { if (_previewMap) _previewMap.invalidateSize(); }, 100);
+}
+
+function clearLocationPreview() {
+  document.getElementById("f-lat").value = "";
+  document.getElementById("f-lng").value = "";
+  document.getElementById("f-address").value = "";
+  document.getElementById("f-city").value = "";
+  document.getElementById("f-postal").value = "";
+  document.getElementById("f-location-preview").style.display = "none";
+  if (_previewMap) { _previewMap.remove(); _previewMap = null; }
+  document.getElementById("f-address").focus();
+}
+
 // ── ADDRESS AUTOCOMPLETE ──────────────────────────────────────────────────
 var _acTimer = null;
 
@@ -2809,6 +2867,7 @@ async function _acFetch(val) {
         document.getElementById("f-lng").value = item.lon;
         box.style.display = "none";
         box.innerHTML = "";
+        showLocationPreview(parseFloat(item.lat), parseFloat(item.lon), main + (city ? ", " + city : ""));
       });
 
       box.appendChild(div);
