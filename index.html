@@ -2829,52 +2829,59 @@ function onAddressInput(val) {
 async function _acFetch(val) {
   var box = document.getElementById("f-address-suggestions");
   try {
-    var url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=pt&q=" + encodeURIComponent(val);
-    var r = await fetch(url, { headers: { "Accept": "application/json" } });
-    var results = await r.json();
+    var GEOAPIFY_KEY = "YOUR_GEOAPIFY_KEY"; // substituir pela tua chave em geoapify.com (grátis)
+    var url = "https://api.geoapify.com/v1/geocode/autocomplete?text=" +
+      encodeURIComponent(val) +
+      "&filter=countrycode:pt&format=json&limit=5&apiKey=" + GEOAPIFY_KEY;
 
-    if (!results || !results.length) {
-      box.innerHTML = '<div class="address-loading"><i class="ti ti-map-pin-off"></i> Sem resultados.</div>';
+    var r = await fetch(url);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    var data = await r.json();
+    var results = (data && data.results) ? data.results : [];
+
+    if (!results.length) {
+      box.innerHTML = '<div class="address-loading"><i class="ti ti-map-pin-off"></i> Sem resultados. Tente outra morada.</div>';
       return;
     }
 
     box.innerHTML = "";
     results.forEach(function(item) {
-      var addr = item.address || {};
-      var road = addr.road || addr.pedestrian || addr.footway || addr.suburb || "";
-      var num  = addr.house_number || "";
-      var main = road + (num ? " " + num : "");
-      if (!main) main = item.display_name.split(",")[0];
-      var city     = addr.city || addr.town || addr.village || addr.municipality || addr.county || "";
-      var postcode = addr.postcode || "";
-      var sub = [city, postcode].filter(Boolean).join(", ");
+      var road     = item.street || "";
+      var num      = item.housenumber || "";
+      var main     = road + (num ? " " + num : "");
+      if (!main) main = item.formatted ? item.formatted.split(",")[0] : "";
+      var city     = item.city || item.town || item.village || item.county || "";
+      var postcode = item.postcode || "";
+      var sub      = [city, postcode].filter(Boolean).join(", ");
+      var lat      = item.lat;
+      var lon      = item.lon;
 
       var div = document.createElement("div");
       div.className = "address-suggestion";
       div.innerHTML =
         '<i class="ti ti-map-pin"></i>' +
         '<div>' +
-          '<div class="address-suggestion-main">' + esc(main) + '</div>' +
+          '<div class="address-suggestion-main">' + esc(main || item.formatted || "") + '</div>' +
           (sub ? '<div class="address-suggestion-sub">' + esc(sub) + '</div>' : '') +
         '</div>';
 
       div.addEventListener("mousedown", function(e) {
         e.preventDefault();
-        document.getElementById("f-address").value = main;
+        document.getElementById("f-address").value = main || "";
         document.getElementById("f-city").value    = city;
         if (postcode) document.getElementById("f-postal").value = postcode;
-        document.getElementById("f-lat").value = item.lat;
-        document.getElementById("f-lng").value = item.lon;
+        document.getElementById("f-lat").value = lat;
+        document.getElementById("f-lng").value = lon;
         box.style.display = "none";
         box.innerHTML = "";
-        showLocationPreview(parseFloat(item.lat), parseFloat(item.lon), main + (city ? ", " + city : ""));
+        showLocationPreview(parseFloat(lat), parseFloat(lon), main + (city ? ", " + city : ""));
       });
 
       box.appendChild(div);
     });
 
   } catch(e) {
-    box.innerHTML = '<div class="address-loading"><i class="ti ti-wifi-off"></i> Erro de ligação.</div>';
+    box.innerHTML = '<div class="address-loading"><i class="ti ti-wifi-off"></i> Erro de ligação. Verifique a chave Geoapify.</div>';
     console.error("Autocomplete error:", e);
   }
 }
