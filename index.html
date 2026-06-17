@@ -20,7 +20,7 @@
       --radius: 8px; --radius-lg: 12px;
     }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); background: var(--surface); }
-    .nav { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:100; }
+    .nav { display:flex; align-items:center; justify-content:space-between; padding:8px 24px; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:100; }
     .logo { display:flex; align-items:center; cursor:pointer; }
     .logo em { font-style:normal; color:var(--accent); }
     .nav-actions { display:flex; gap:8px; align-items:center; }
@@ -427,7 +427,7 @@
 
 <nav class="nav">
   <div class="logo" onclick="showPage('listings')">
-    <svg width="72" height="72" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="52" height="52" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="80" cy="80" r="72" stroke="#1D5C4A" stroke-width="2.5" fill="none"/>
       <text x="80" y="90" font-family="Georgia, serif" font-size="36" fill="#1D5C4A" text-anchor="middle" letter-spacing="-0.5" font-weight="400">frentaro</text>
     </svg>
@@ -2833,7 +2833,7 @@ function onAddressInput(val) {
 async function _acFetch(val) {
   var box = document.getElementById("f-address-suggestions");
   try {
-    var GEOAPIFY_KEY = "cf4870c7a3864f26bf061bf3a1ae9a1e";
+    var GEOAPIFY_KEY = "YOUR_GEOAPIFY_KEY";
     var url = "https://api.geoapify.com/v1/geocode/autocomplete" +
       "?text=" + encodeURIComponent(val) +
       "&filter=countrycode:pt" +
