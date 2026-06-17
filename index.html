@@ -21,7 +21,7 @@
     }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); background: var(--surface); }
     .nav { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:100; }
-    .logo { display:flex; align-items:center; gap:8px; font-size:20px; font-weight:700; color:var(--brand); cursor:pointer; }
+    .logo { display:flex; align-items:center; cursor:pointer; }
     .logo em { font-style:normal; color:var(--accent); }
     .nav-actions { display:flex; gap:8px; align-items:center; }
     .nav-avatar-wrap { position:relative; }
@@ -427,7 +427,10 @@
 
 <nav class="nav">
   <div class="logo" onclick="showPage('listings')">
-    <i class="ti ti-building"></i>frentaro
+    <svg width="72" height="72" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="80" cy="80" r="72" stroke="#1D5C4A" stroke-width="2.5" fill="none"/>
+      <text x="80" y="90" font-family="Georgia, serif" font-size="36" fill="#1D5C4A" text-anchor="middle" letter-spacing="-0.5" font-weight="400">frentaro</text>
+    </svg>
   </div>
   <div class="nav-actions" id="nav-actions">
     <button class="btn btn-sm btn-outline" onclick="openAuth('login')">Entrar</button>
@@ -3186,7 +3189,10 @@ function toggleFaq(el) {
 <footer style="background:#085041;color:rgba(255,255,255,0.7);padding:40px 24px">
   <div style="max-width:960px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;align-items:start">
     <div>
-      <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;align-items:center;gap:8px"><i class="ti ti-building"></i>frentaro</div>
+      <svg width="56" height="56" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:12px;display:block">
+        <circle cx="80" cy="80" r="72" stroke="rgba(255,255,255,0.7)" stroke-width="2.5" fill="none"/>
+        <text x="80" y="90" font-family="Georgia, serif" font-size="36" fill="rgba(255,255,255,0.9)" text-anchor="middle" letter-spacing="-0.5" font-weight="400">frentaro</text>
+      </svg>
       <div style="font-size:13px;line-height:1.7">Arrendamento directo entre proprietários e inquilinos em Portugal. Simples, transparente e sem comissões.</div>
     </div>
     <div>
