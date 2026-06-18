@@ -1751,6 +1751,7 @@ async function doLogin() {
     btn.disabled = false; btn.innerHTML = '<i class="ti ti-login"></i> Entrar';
 
     if (r.error) {
+      console.log("Supabase login error:", JSON.stringify(r.error));
       var m = r.error.message || "";
       if (m.toLowerCase().includes("invalid") ||
           m.toLowerCase().includes("credentials") ||
