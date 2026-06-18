@@ -1712,7 +1712,12 @@ function updateNav() {
 function closeDD() { var d = document.getElementById("nav-dropdown"); if(d) d.remove(); }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────
-function openAuth(tab) { document.getElementById("auth-modal").classList.remove("hidden"); switchTab(tab); }
+function openAuth(tab) {
+  document.getElementById("auth-modal").classList.remove("hidden");
+  document.getElementById("login-msg").style.display = "none";
+  document.getElementById("reg-msg").style.display = "none";
+  switchTab(tab);
+}
 function closeAuth()   { document.getElementById("auth-modal").classList.add("hidden"); }
 document.getElementById("auth-modal").addEventListener("click", function(e){ if(e.target===this) closeAuth(); });
 
@@ -1735,16 +1740,36 @@ function showMsg(id, msg, isErr) {
 async function doLogin() {
   var email = document.getElementById("login-email").value.trim();
   var pass  = document.getElementById("login-password").value;
-  if (!email||!pass) { showMsg("login-msg","Preencha email e password.",true); return; }
-  var btn = document.getElementById("login-btn");
-  btn.disabled=true; btn.textContent="A entrar...";
-  var r = await sb.auth.signInWithPassword({ email:email, password:pass });
-  btn.disabled=false; btn.innerHTML='<i class="ti ti-login"></i> Entrar';
-  if (r.error) {
-    var m = r.error.message;
-    if (m.includes("Invalid"))        m = "Email ou password incorrectos.";
-    if (m.includes("not confirmed"))  m = "Confirme o seu email antes de entrar.";
-    showMsg("login-msg", m, true);
+  var btn   = document.getElementById("login-btn");
+
+  if (!email || !pass) { showMsg("login-msg", "Preencha o email e a password.", true); return; }
+
+  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> A entrar...';
+
+  try {
+    var r = await sb.auth.signInWithPassword({ email: email, password: pass });
+    btn.disabled = false; btn.innerHTML = '<i class="ti ti-login"></i> Entrar';
+
+    if (r.error) {
+      var m = r.error.message || "";
+      if (m.toLowerCase().includes("invalid") ||
+          m.toLowerCase().includes("credentials") ||
+          m.toLowerCase().includes("wrong") ||
+          m.toLowerCase().includes("password") ||
+          m.toLowerCase().includes("email")) {
+        m = "Email ou password incorrectos. Tente novamente.";
+      } else if (m.toLowerCase().includes("not confirmed")) {
+        m = "Confirme o seu email antes de entrar.";
+      } else if (m.toLowerCase().includes("too many")) {
+        m = "Demasiadas tentativas. Aguarde uns minutos.";
+      } else {
+        m = "Erro ao entrar. Verifique os seus dados e tente novamente.";
+      }
+      showMsg("login-msg", m, true);
+    }
+  } catch(e) {
+    btn.disabled = false; btn.innerHTML = '<i class="ti ti-login"></i> Entrar';
+    showMsg("login-msg", "Erro de ligação. Verifique a sua internet.", true);
   }
 }
 
