@@ -328,6 +328,149 @@
       .hero h1 { font-size:26px; }
     }
 
+    /* ── MOBILE ────────────────────────────────────────────────────────── */
+    @media(max-width:600px) {
+      .logo svg { width:160px; height:35px; }
+      .nav { padding:6px 14px; }
+      .nav-actions { gap:6px; }
+      .btn-sm { padding:6px 10px; font-size:13px; }
+
+      /* Hero */
+      .hero { padding:36px 16px 32px; }
+      .hero h1 { font-size:22px; }
+      .hero p { font-size:14px; }
+      .search-bar input { font-size:14px; padding:11px 12px; }
+      .search-bar button { padding:8px 14px; font-size:13px; }
+      .hero-chips { gap:6px; }
+      .hero-chip { font-size:12px; padding:5px 10px; }
+
+      /* Filter chips */
+      .filters { padding:10px 12px; gap:6px; }
+      .filter-chip { padding:6px 12px; font-size:12px; }
+
+      /* Listings layout — hide sidebar on mobile, show as collapsible */
+      .listings-layout { grid-template-columns:1fr; }
+      .filter-sidebar { display:none; }
+      .filter-sidebar.open { display:block; position:fixed; inset:0; z-index:150; overflow-y:auto; height:100vh; border-radius:0; }
+
+      /* Stats bar */
+      .stats-bar { padding:10px 14px; flex-wrap:wrap; gap:8px; }
+      .sort-select { font-size:12px; padding:5px 8px; }
+      .toggle-btn { padding:5px 10px; font-size:12px; }
+
+      /* Cards */
+      .listings-grid { grid-template-columns:1fr; gap:12px; padding:12px; }
+      .card-img { height:200px; }
+      .card-body { padding:12px; }
+      .card-price { font-size:18px; }
+
+      /* Detail page */
+      .detail-back { padding:12px 14px 0; }
+      .detail-gallery { height:220px; margin:10px 14px 0; border-radius:var(--radius); }
+      .detail-body { padding:14px; gap:16px; }
+      .detail-title { font-size:20px; }
+      .detail-stats { gap:8px; }
+      .stat-pill { padding:8px 10px; font-size:13px; }
+      .features-grid { grid-template-columns:1fr 1fr; }
+      .contact-card { padding:16px; }
+      .contact-price { font-size:22px; }
+
+      /* Dashboard */
+      .dash-content { padding:16px; }
+      .stats-grid { grid-template-columns:1fr 1fr; gap:10px; }
+      .stat-card { padding:14px; }
+      .stat-card-value { font-size:24px; }
+      .table-header, .table-row { font-size:12px; padding:10px 12px; }
+
+      /* Post form */
+      .form-page { padding:20px 14px 40px; }
+      .form-page h2 { font-size:20px; }
+      .form-section { padding:16px; }
+      .form-actions { flex-direction:column; }
+      .form-actions .btn { width:100%; justify-content:center; }
+
+      /* Modals */
+      .modal { padding:20px 16px; }
+      .modal-overlay { padding:0; align-items:flex-end; }
+      .modal { border-radius:var(--radius-lg) var(--radius-lg) 0 0; max-height:92vh; overflow-y:auto; }
+      .app-modal { border-radius:var(--radius-lg) var(--radius-lg) 0 0; max-height:92vh; padding:20px 16px; }
+      .profile-modal { border-radius:var(--radius-lg) var(--radius-lg) 0 0; max-height:92vh; padding:20px 16px; }
+
+      /* Map */
+      .map-page-layout { grid-template-columns:1fr; grid-template-rows:50vh 1fr; }
+      .map-sidebar { border-right:none; border-top:1px solid var(--border); max-height:50vh; overflow-y:auto; }
+      .listings-map-container.active { flex-direction:column; height:auto; }
+      #listings-map { height:280px; }
+      .map-listings-panel { width:100%; min-width:0; border-left:none; border-top:1px solid var(--border); max-height:300px; }
+
+      /* Contact form buttons stacked */
+      .contact-form > div[style*="display:flex"] { flex-direction:column; }
+      .contact-btn { margin-bottom:0 !important; }
+
+      /* Thread / conversation */
+      .conv-messages { max-height:300px; }
+
+      /* Footer */
+      footer > div:first-child { grid-template-columns:1fr !important; gap:24px; }
+
+      /* Toast */
+      .toast { bottom:16px; right:12px; left:12px; text-align:center; }
+
+      /* Static pages */
+      .static-hero { padding:36px 16px 28px; }
+      .static-hero h1 { font-size:22px; }
+      .static-hero p { font-size:14px; }
+      .static-body { padding:28px 14px 48px; }
+      .static-cta { padding:28px 16px; }
+      .values-grid { grid-template-columns:1fr; }
+
+      /* Application cards */
+      .app-card-details { flex-wrap:wrap; }
+      .app-actions { flex-direction:column; }
+      .app-actions .btn { width:100%; justify-content:center; }
+    }
+
+    /* Mobile filter toggle button — only shown on mobile */
+    .mobile-filter-btn {
+      display:none;
+    }
+    @media(max-width:600px) {
+      .mobile-filter-btn {
+        display:flex;
+        align-items:center;
+        gap:6px;
+        padding:7px 14px;
+        border-radius:var(--radius);
+        font-size:13px;
+        font-weight:500;
+        border:1px solid var(--border);
+        background:var(--bg);
+        color:var(--text);
+        cursor:pointer;
+        font-family:inherit;
+      }
+      .filter-sidebar.open .sidebar-close {
+        display:flex;
+      }
+    }
+    .sidebar-close {
+      display:none;
+      align-items:center;
+      justify-content:center;
+      width:100%;
+      padding:14px;
+      background:var(--brand);
+      color:#fff;
+      border:none;
+      font-size:15px;
+      font-weight:600;
+      font-family:inherit;
+      cursor:pointer;
+      gap:8px;
+      margin-top:16px;
+      border-radius:var(--radius);
+    }
+
     /* LIGHTBOX */
     .lightbox-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.93); z-index:9999; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.2s; }
     .lightbox-overlay.active { opacity:1; pointer-events:all; }
@@ -522,7 +665,7 @@
     <button class="filter-chip" onclick="setFilter(this,'setubal')">Setúbal</button>
   </div>
   <div class="listings-layout">
-    <aside class="filter-sidebar">
+    <aside class="filter-sidebar" id="filter-sidebar">
       <div class="sidebar-header">
         <span class="sidebar-title"><i class="ti ti-adjustments-horizontal"></i> Filtros</span>
         <button class="btn-clear" onclick="clearFilters()">Limpar</button>
@@ -568,10 +711,14 @@
           <label class="fcheck"><input type="checkbox" id="f-chk-balcony" onchange="filterListings()"> Varanda</label>
         </div>
       </div>
+      <button class="sidebar-close" onclick="toggleMobileFilters()"><i class="ti ti-check"></i> Ver resultados</button>
     </aside>
     <div class="listings-results">
       <div class="stats-bar" id="stats-bar" style="display:flex;align-items:center;justify-content:space-between">
-        <span id="stats-text">A carregar...</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="mobile-filter-btn" onclick="toggleMobileFilters()"><i class="ti ti-adjustments-horizontal"></i> Filtros</button>
+          <span id="stats-text">A carregar...</span>
+        </div>
         <div style="display:flex;align-items:center;gap:10px">
           <select class="sort-select" id="sort-select" onchange="filterListings()">
             <option value="recent">Mais recentes</option>
@@ -1893,6 +2040,11 @@ function filterListings() {
   var filtered = getCurrentFiltered();
   renderListings(filtered);
   if (currentView === "map" && listingsInlineMap) updateInlineMap(filtered);
+  // Close mobile filter panel if open
+  var sidebar = document.getElementById("filter-sidebar");
+  if (sidebar && sidebar.classList.contains("open") && window.innerWidth <= 600) {
+    // Don't auto-close on every checkbox change, only on explicit close btn
+  }
 }
 function setFilter(el, r) {
   cityFilter = r;
@@ -3175,6 +3327,13 @@ async function withdrawApplication(appId) {
   });
   if (r.ok) { showToast("Candidatura retirada."); loadMyApplications(); }
   else showToast("Erro ao retirar.", true);
+}
+
+function toggleMobileFilters() {
+  var sidebar = document.getElementById("filter-sidebar");
+  var isOpen = sidebar.classList.contains("open");
+  sidebar.classList.toggle("open");
+  document.body.style.overflow = isOpen ? "" : "hidden";
 }
 
 // ── FAQ TOGGLE ────────────────────────────────────────────────────────────
