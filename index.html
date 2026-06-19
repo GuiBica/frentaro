@@ -1898,8 +1898,8 @@ async function loadOverview() {
   var myL = await r1.json(); myL = Array.isArray(myL) ? myL : [];
   var ids = myL.map(function(l) { return l.id; }).join(",");
 
-  var totalViews = 0, totalMsgs = 0, totalFavs = 0;
-  var viewsByListing = {}, favsByListing = {}, msgsByListing = {};
+  var totalViews = 0, totalMsgs = 0, totalFavs = 0, totalApps = 0;
+  var viewsByListing = {}, favsByListing = {}, msgsByListing = {}, appsByListing = {};
 
   if (ids) {
     var r2 = await fetch(SB_URL + "/rest/v1/listing_views?select=listing_id&listing_id=in.(" + ids + ")", { headers: h });
@@ -1916,6 +1916,11 @@ async function loadOverview() {
     var msgs = await r4.json(); msgs = Array.isArray(msgs) ? msgs : [];
     totalMsgs = msgs.length;
     msgs.forEach(function(m) { msgsByListing[m.listing_id] = (msgsByListing[m.listing_id] || 0) + 1; });
+
+    var r5 = await fetch(SB_URL + "/rest/v1/applications?select=listing_id&listing_id=in.(" + ids + ")", { headers: h });
+    var apps = await r5.json(); apps = Array.isArray(apps) ? apps : [];
+    totalApps = apps.length;
+    apps.forEach(function(a) { appsByListing[a.listing_id] = (appsByListing[a.listing_id] || 0) + 1; });
   }
 
   var statsHtml =
@@ -1924,22 +1929,24 @@ async function loadOverview() {
     '<div class="stat-card"><div class="stat-card-label"><i class="ti ti-eye"></i> Visualizações</div><div class="stat-card-value">' + totalViews + '</div></div>' +
     '<div class="stat-card"><div class="stat-card-label"><i class="ti ti-heart"></i> Favoritos</div><div class="stat-card-value">' + totalFavs + '</div></div>' +
     '<div class="stat-card"><div class="stat-card-label"><i class="ti ti-message"></i> Mensagens</div><div class="stat-card-value">' + totalMsgs + '</div></div>' +
+    '<div class="stat-card"><div class="stat-card-label"><i class="ti ti-file-cv"></i> Candidaturas</div><div class="stat-card-value">' + totalApps + '</div></div>' +
     '</div>';
 
   var tableHtml = "";
   if (myL.length) {
     tableHtml = '<h3 style="font-size:15px;font-weight:600;margin-bottom:12px">Por anúncio</h3>' +
       '<div class="listings-table">' +
-      '<div class="table-header" style="grid-template-columns:1fr 70px 70px 70px">' +
-        '<span>Anúncio</span><span><i class="ti ti-eye"></i></span><span><i class="ti ti-heart"></i></span><span><i class="ti ti-message"></i></span>' +
+      '<div class="table-header" style="grid-template-columns:1fr 60px 60px 60px 90px">' +
+        '<span>Anúncio</span><span><i class="ti ti-eye"></i></span><span><i class="ti ti-heart"></i></span><span><i class="ti ti-message"></i></span><span><i class="ti ti-file-cv"></i> Candid.</span>' +
       '</div>' +
       myL.map(function(l) {
-        return '<div class="table-row" style="grid-template-columns:1fr 70px 70px 70px">' +
+        return '<div class="table-row" style="grid-template-columns:1fr 60px 60px 60px 90px">' +
           '<div><div style="font-weight:500;font-size:13px">' + esc(l.title) + '</div>' +
           '<div style="font-size:12px;color:var(--muted)">€' + Number(l.price).toLocaleString("pt-PT") + '/mês</div></div>' +
           '<div style="font-size:14px;color:var(--muted)">' + (viewsByListing[l.id] || 0) + '</div>' +
           '<div style="font-size:14px;color:var(--muted)">' + (favsByListing[l.id] || 0) + '</div>' +
           '<div style="font-size:14px;color:var(--muted)">' + (msgsByListing[l.id] || 0) + '</div>' +
+          '<div style="font-size:14px;color:var(--muted)">' + (appsByListing[l.id] || 0) + '</div>' +
         '</div>';
       }).join("") +
       '</div>';
